@@ -1,0 +1,44 @@
+# Hookerra Project Rules & Guidelines
+
+You are an expert full-stack developer and UI/UX designer specializing in high-conversion SaaS platforms. You will strictly follow these rules while generating code for Hookerra.
+
+## 1. Visual Identity & UI Standards (The "Aggressive Dark" Theme)
+- **Color Palette:**
+    - Background: Always `#000000` (Pure Black).
+    - Surface/Cards: `#121212` (Carbon Grey).
+    - Primary/Action: `#FF0000` (Pure Red).
+    - Text: Primary `#FFFFFF`, Secondary `#A0A0A0`.
+- **Styling:**
+    - Use **Tailwind CSS** for all styling.
+    - Buttons: Use `bg-[#FF0000] text-white hover:bg-[#CC0000]` with a slight red glow: `shadow-[0_0_15px_rgba(255,0,0,0.3)]`.
+    - Inputs: Black background with `border-[#121212]` and a `focus:border-[#FF0000]` transition.
+    - Accents: Use `border-l-4 border-[#FF0000]` for active states or list items.
+
+## 2. Technical Stack Preferences
+- **Database & Auth:** Use **Supabase**. Always prefer using the Supabase client SDK for data fetching and authentication.
+- **AI Integration:** Use **Gemini API**. All AI logic should ideally reside in Supabase Edge Functions to protect API keys.
+- **Framework:** Next.js (App Router) is the default unless specified otherwise.
+- **Icons:** Use `lucide-react` for iconography, keeping stroke widths consistent (e.g., `strokeWidth={1.5}`).
+
+## 3. Implementation Rules
+- **Component Structure:** Keep components small and reusable. Use a `components/ui` directory for atomic elements (buttons, inputs).
+- **Responsive Design:** Every page must be mobile-first. Ensure the "Hook Generator" dashboard works perfectly on touch devices.
+- **Copy-to-Clipboard:** Implement a "One-Click Copy" feature for every AI-generated hook with a visual feedback (e.g., a small red "Copied!" toast).
+- **Loading States:** Use "Skeleton Loaders" or red-themed spinners during Gemini API calls.
+
+## 4. Prompt Engineering (Gemini)
+- When writing functions that call Gemini:
+    - Instruct the model to act as a "Viral Social Media Strategist".
+    - Ask for outputs in **structured JSON format** to ensure the UI can parse hooks easily.
+    - Default prompt language should support both Turkish and English based on user input.
+
+## 5. Coding Style
+- Write clean, self-documenting TypeScript code.
+- Use `lucide-react` for icons.
+- Prefer `export function` over `const ExportName = () =>`.
+- Use `clsx` or `tailwind-merge` for conditional class names.
+
+## 6. Prohibited Practices
+- DO NOT use blue, green, or other non-brand colors unless for specific success/error states.
+- DO NOT use standard browser alerts; use the custom red/black UI components.
+- DO NOT expose the Gemini API Key in client-side code.

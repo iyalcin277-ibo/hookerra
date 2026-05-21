@@ -1,0 +1,8 @@
+Help me test this project with TestSprite.
+
+Project: Hookerra — Next.js 15 App Router at this repo root.
+Dev server: npm run dev → http://localhost:3000 (also http://127.0.0.1:3000).
+Product context: projeplan.md
+Backend route to cover if possible: POST /api/generate-hooks (needs Supabase user session + GEMINI_API_KEY).
+Auth: create or use a Supabase test user; sign in via /login (email/password or Google per setup).
+Environment: copy .env.example → .env.local and fill Supabase + Gemini keys before generation/API tests.

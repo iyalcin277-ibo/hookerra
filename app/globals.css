@@ -1,0 +1,108 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Archivo+Black&display=swap');
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Archivo Black', sans-serif;
+  --color-hook-black: #000000;
+  --color-hook-surface: #121212;
+  --color-hook-red: #ff0000;
+  --color-hook-red-hover: #cc0000;
+  --color-hook-muted: #a0a0a0;
+  --color-hook-danger: #b91c1c;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-[#000000] text-white antialiased;
+  font-family: var(--font-sans);
+  scroll-behavior: smooth;
+}
+
+.font-display {
+  font-family: 'Archivo Black', sans-serif;
+}
+
+::selection {
+  background: rgba(255, 0, 0, 0.35);
+}
+
+.neon-red-glow {
+  box-shadow: 0 0 15px rgba(255, 0, 0, 0.3);
+}
+
+.neon-red-text {
+  filter: drop-shadow(0 0 10px rgba(255, 0, 0, 0.5));
+}
+
+.terminal-scanline {
+  background: linear-gradient(
+    transparent 50%,
+    rgba(255, 0, 0, 0.03) 50%
+  );
+  background-size: 100% 4px;
+  pointer-events: none;
+}
+
+@keyframes terminal-blink {
+  0%,
+  49% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes terminal-pulse {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.animate-terminal-cursor {
+  animation: terminal-blink 1s step-end infinite;
+}
+
+.animate-terminal-line {
+  animation: terminal-pulse 2s ease-in-out infinite;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+@keyframes testimonial-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.testimonial-marquee-track {
+  animation: testimonial-marquee 55s linear infinite;
+}
+
+.testimonial-marquee-wrap:hover .testimonial-marquee-track {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .testimonial-marquee-track {
+    animation: none;
+  }
+}
