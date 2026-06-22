@@ -2,62 +2,62 @@ import { LegalPage } from '@/components/LegalPage';
 
 export default function RefundPage() {
   return (
-    <LegalPage title="İade politikası">
-      <p className="text-xs text-[#707070]">Son güncelleme: 18.05.2026</p>
+    <LegalPage title="Refund Policy">
+      <p className="text-xs text-[#707070]">Last updated: May 18, 2026</p>
 
       <p>
-        Hookerra olarak yapay zekâ destekli araçlarımızdan memnun kalmanızı isteriz. Hizmetlerimizin
-        dijital doğası gereği, iade süreçlerimiz aşağıda özetlenen kurallara tabidir.
+        At Hookerra we want you to be satisfied with our AI-powered tools. Due to the digital nature of
+        our services, our refund process is governed by the rules summarized below.
       </p>
 
       <section className="space-y-3">
-        <h2 className="text-base font-bold text-white">1. Dijital içerik ve hizmetler</h2>
+        <h2 className="text-base font-bold text-white">1. Digital content &amp; services</h2>
         <p>
-          Hookerra üzerinden satın alınan abonelikler ve krediler, &quot;anında teslim edilen dijital
-          içerik&quot; sayılır. İlgili tüketici mevzuatı kapsamında, halihazırda kullanılmış paketlerde
-          (örneğin yapay zekâ ile üretilmiş hook&apos;lar veya diğer AI çıktıları) standart bir cayma
-          hakkı bulunmamaktadır.
+          Subscriptions and credits purchased on Hookerra are considered &quot;instantly delivered digital
+          content.&quot; Under applicable consumer regulations, there is no standard right of withdrawal
+          for plans that have already been used (e.g. hooks or other AI-generated outputs already
+          produced).
         </p>
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-base font-bold text-white">2. İade koşulları</h2>
-        <p>Aşağıdaki hallerde iade talebinde bulunabilirsiniz:</p>
+        <h2 className="text-base font-bold text-white">2. Refund conditions</h2>
+        <p>You may request a refund in the following cases:</p>
         <ul className="list-disc space-y-2 pl-5">
           <li>
-            <strong className="font-semibold text-[#C8C8C8]">Teknik hatalar:</strong> Sistem
-            kaynaklı bir nedenden hizmete erişememeniz ve bu sorunun 48 saat içinde
-            giderilememesi.
+            <strong className="font-semibold text-[#C8C8C8]">Technical errors:</strong> If a
+            system-side issue prevents you from accessing the service and the problem cannot be resolved
+            within 48 hours.
           </li>
           <li>
-            <strong className="font-semibold text-[#C8C8C8]">Kullanılmamış abonelik:</strong>{' '}
-            Talebin satın alımdan itibaren 24 saat içinde iletilmesi ve bu süre içinde sistemde hiç
-            yapay zekâ üretiminin yapılmamış olması.
+            <strong className="font-semibold text-[#C8C8C8]">Unused subscription:</strong> If the
+            refund request is submitted within 24 hours of purchase and no AI generations have been made
+            during that period.
           </li>
         </ul>
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-base font-bold text-white">3. İade süreci</h2>
+        <h2 className="text-base font-bold text-white">3. Refund process</h2>
         <p>
-          İade taleplerinizi{' '}
+          Send your refund request to{' '}
           <a
             href="mailto:support@hookerra.com"
             className="font-medium text-white underline decoration-[#FF0000]/60 underline-offset-2 hover:decoration-[#FF0000]"
           >
             support@hookerra.com
           </a>{' '}
-          adresine, hesap bilgileriniz ve faturanızla birlikte göndermelisiniz. Talebiniz
-          incelendikten sonra en geç 7 iş günü içinde tarafınıza dönüş yapılır.
+          along with your account details and invoice. After reviewing your request, we will get back to
+          you within 7 business days.
         </p>
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-base font-bold text-white">4. Abonelik iptali</h2>
+        <h2 className="text-base font-bold text-white">4. Subscription cancellation</h2>
         <p>
-          İade ile abonelik iptali farklıdır. Aboneliğinizi dilediğiniz zaman iptal edebilirsiniz.
-          İptal halinde, yürürlükteki fatura dönemi için ücret iadesi yapılmaz; buna karşılık
-          hizmetten o dönemin sonuna kadar yararlanmaya devam edersiniz.
+          A refund and a cancellation are different things. You can cancel your subscription at any time.
+          Upon cancellation, no refund is issued for the current billing period; however, you continue
+          to have access to the service until the end of that period.
         </p>
       </section>
     </LegalPage>

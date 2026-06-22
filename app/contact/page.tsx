@@ -2,21 +2,21 @@ import { LegalPage } from '@/components/LegalPage';
 
 export default function ContactPage() {
   return (
-    <LegalPage title="İletişim">
-      <p className="text-base text-white">Bizimle İletişime Geçin</p>
+    <LegalPage title="Contact">
+      <p className="text-base text-white">Get in touch with us</p>
       <p>
-        Hookerra ile ilgili her türlü soru, öneri, iş birliği veya teknik destek talepleriniz için bize
-        ulaşabilirsiniz. Ekibimiz en kısa sürede size dönüş yapacaktır.
+        You can reach us for any questions, suggestions, partnership opportunities, or technical support
+        requests related to Hookerra. Our team will get back to you as soon as possible.
       </p>
 
       <section className="space-y-3">
-        <h2 className="text-base font-bold text-white">1. E-Posta Adreslerimiz</h2>
+        <h2 className="text-base font-bold text-white">1. Email addresses</h2>
         <p>
-          Sorunuzun içeriğine göre aşağıdaki adreslerden bizimle doğrudan iletişime geçebilirsiniz:
+          Reach out directly using the address that best matches your inquiry:
         </p>
         <ul className="list-disc space-y-2 pl-5">
           <li>
-            <strong className="font-semibold text-[#C8C8C8]">Genel Sorular &amp; İş Birliği:</strong>{' '}
+            <strong className="font-semibold text-[#C8C8C8]">General Inquiries &amp; Partnerships:</strong>{' '}
             <a
               href="mailto:hello@hookerra.com"
               className="text-[#FF0000] underline decoration-[#FF0000]/40 underline-offset-2 hover:text-white"
@@ -25,7 +25,7 @@ export default function ContactPage() {
             </a>
           </li>
           <li>
-            <strong className="font-semibold text-[#C8C8C8]">Müşteri Desteği &amp; Teknik Yardım:</strong>{' '}
+            <strong className="font-semibold text-[#C8C8C8]">Customer Support &amp; Technical Help:</strong>{' '}
             <a
               href="mailto:support@hookerra.com"
               className="text-[#FF0000] underline decoration-[#FF0000]/40 underline-offset-2 hover:text-white"
@@ -34,7 +34,7 @@ export default function ContactPage() {
             </a>
           </li>
           <li>
-            <strong className="font-semibold text-[#C8C8C8]">Gizlilik &amp; Veri Talepleri:</strong>{' '}
+            <strong className="font-semibold text-[#C8C8C8]">Privacy &amp; Data Requests:</strong>{' '}
             <a
               href="mailto:privacy@hookerra.com"
               className="text-[#FF0000] underline decoration-[#FF0000]/40 underline-offset-2 hover:text-white"
@@ -46,22 +46,21 @@ export default function ContactPage() {
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-base font-bold text-white">2. Yanıt Süresi</h2>
+        <h2 className="text-base font-bold text-white">2. Response time</h2>
         <p>
-          Bize gönderdiğiniz tüm e-postalara en geç 24-48 saat içerisinde (iş günlerinde) geri dönüş
-          yapmaya özen gösteriyoruz.
+          We aim to respond to all emails within 24–48 business hours.
         </p>
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-base font-bold text-white">3. Şirket Bilgileri</h2>
+        <h2 className="text-base font-bold text-white">3. Company details</h2>
         <ul className="list-disc space-y-2 pl-5">
           <li>
-            <strong className="font-semibold text-[#C8C8C8]">Platform Adı:</strong> Hookerra SaaS
+            <strong className="font-semibold text-[#C8C8C8]">Platform name:</strong> Hookerra SaaS
             Solutions
           </li>
           <li>
-            <strong className="font-semibold text-[#C8C8C8]">Merkez:</strong> İstanbul, Türkiye
+            <strong className="font-semibold text-[#C8C8C8]">Headquarters:</strong> Istanbul, Turkey
           </li>
         </ul>
       </section>

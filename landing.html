@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Hookerra Pro — AI Content Production Factory</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        colors: {
+          brand: '#ef4444',
+          'brand-dark': '#dc2626',
+          'brand-glow': 'rgba(239,68,68,0.25)',
+        },
+        fontFamily: {
+          sans: ['Inter', 'system-ui', 'sans-serif'],
+          mono: ['JetBrains Mono', 'monospace'],
+        },
+        animation: {
+          'fade-up': 'fadeUp 0.6s ease forwards',
+          'pulse-glow': 'pulseGlow 2s ease-in-out infinite',
+          'marquee': 'marquee 30s linear infinite',
+          'float': 'float 4s ease-in-out infinite',
+        },
+        keyframes: {
+          fadeUp: {
+            '0%': { opacity: '0', transform: 'translateY(24px)' },
+            '100%': { opacity: '1', transform: 'translateY(0)' },
+          },
+          pulseGlow: {
+            '0%,100%': { boxShadow: '0 0 20px rgba(239,68,68,0.3)' },
+            '50%': { boxShadow: '0 0 40px rgba(239,68,68,0.6)' },
+          },
+          marquee: {
+            '0%': { transform: 'translateX(0)' },
+            '100%': { transform: 'translateX(-50%)' },
+          },
+          float: {
+            '0%,100%': { transform: 'translateY(0)' },
+            '50%': { transform: 'translateY(-8px)' },
+          },
+        },
+      },
+    },
+  };
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+<style>
+  :root { color-scheme: dark; }
+
+  /* Noise texture overlay */
+  .noise::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.4;
+  }
+
+  /* Gradient mesh background */
+  .mesh-bg {
+    background:
+      radial-gradient(ellipse 80% 50% at 20% -20%, rgba(239,68,68,0.08) 0%, transparent 60%),
+      radial-gradient(ellipse 60% 40% at 80% 110%, rgba(239,68,68,0.06) 0%, transparent 60%),
+      #030303;
+  }
+
+  /* Grid pattern */
+  .grid-pattern {
+    background-image:
+      linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+
+  /* Card glow on hover */
+  .card-hover {
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+  }
+  .card-hover:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 60px rgba(239,68,68,0.15);
+    border-color: rgba(239,68,68,0.4) !important;
+  }
+
+  /* Glowing divider */
+  .glow-line {
+    background: linear-gradient(90deg, transparent, #ef4444, transparent);
+    height: 1px;
+  }
+
+  /* Pill badge */
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* Scroll reveal */
+  .reveal {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: none;
+  }
+
+  /* Pricing toggle */
+  .toggle-track {
+    width: 48px; height: 26px; border-radius: 13px;
+    background: #1f1f1f; border: 1px solid #333;
+    position: relative; cursor: pointer; transition: background 0.2s;
+  }
+  .toggle-track.on { background: #ef4444; }
+  .toggle-thumb {
+    width: 20px; height: 20px; border-radius: 50%;
+    background: white;
+    position: absolute; top: 2px; left: 3px;
+    transition: left 0.2s;
+  }
+  .toggle-track.on .toggle-thumb { left: 25px; }
+
+  /* Ticker tape */
+  .ticker-inner { display: flex; gap: 48px; white-space: nowrap; }
+
+  /* Dark/light toggle */
+  html.light { background: #fafafa; color: #111; }
+  html.light .mesh-bg { background: radial-gradient(ellipse 80% 50% at 20% -20%, rgba(239,68,68,0.06) 0%, transparent 60%), #fafafa; }
+  html.light .grid-pattern { background-image: linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px); background-size: 60px 60px; }
+
+  /* Smooth scroll */
+  html { scroll-behavior: smooth; }
+
+  /* Step connector */
+  .step-connector { width: 40px; height: 2px; background: linear-gradient(90deg, #ef4444, transparent); }
+
+  /* Animated counter */
+  @keyframes countUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  .count-anim { animation: countUp 0.5s ease forwards; }
+</style>
+</head>
+<body class="noise mesh-bg grid-pattern text-white font-sans antialiased overflow-x-hidden">
+
+<!-- ─── THEME TOGGLE ─── -->
+<div class="fixed top-4 right-4 z-50 flex items-center gap-2">
+  <button id="theme-btn" aria-label="Toggle light/dark mode"
+    class="w-9 h-9 rounded-full bg-white/5 border border-white/10 backdrop-blur flex items-center justify-center text-sm hover:bg-white/10 transition">
+    <span id="theme-icon">☀️</span>
+  </button>
+</div>
+
+<!-- ─── NAV ─── -->
+<nav class="fixed top-0 left-0 right-0 z-40 border-b border-white/5 backdrop-blur-xl bg-black/40">
+  <div class="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <div class="w-7 h-7 bg-brand rounded-md flex items-center justify-center">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+      </div>
+      <span class="font-bold tracking-tight text-white">hookerra</span>
+      <span class="pill bg-brand/10 border border-brand/30 text-brand ml-1">PRO</span>
+    </div>
+    <a data-gumroad-action="buy" data-gumroad-option="Untitled" data-gumroad-recurrence="monthly"
+      class="pill bg-brand text-white border border-brand hover:bg-brand-dark transition cursor-pointer text-xs px-4 py-2 rounded-lg font-semibold animate-pulse-glow">
+      Get Pro →
+    </a>
+  </div>
+</nav>
+
+<!-- ─── HERO ─── -->
+<section class="relative pt-32 pb-20 px-6 overflow-hidden">
+  <!-- Glow orb -->
+  <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-brand/10 rounded-full blur-3xl pointer-events-none"></div>
+
+  <div class="max-w-5xl mx-auto text-center relative z-10">
+    <div class="inline-flex items-center gap-2 pill border border-brand/30 bg-brand/10 text-brand mb-8">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      AI Content Production Factory
+    </div>
+
+    <h1 class="text-5xl sm:text-7xl font-black tracking-tight leading-none mb-6">
+      <span class="block">Stop Posting.</span>
+      <span class="block text-brand">Start Dominating.</span>
+    </h1>
+
+    <p class="text-lg sm:text-xl text-white/60 max-w-2xl mx-auto mb-10 leading-relaxed">
+      Hookerra Pro generates your entire content stack in one click —
+      <strong class="text-white/90">hooks, scripts, captions, CTAs, hashtags, and a 7-day plan</strong>
+      — so you never stare at a blank screen again.
+    </p>
+
+    <!-- CTA block -->
+    <div class="flex flex-col sm:flex-row gap-4 justify-center items-center mb-6">
+      <a data-gumroad-action="buy" data-gumroad-option="Untitled" data-gumroad-recurrence="monthly"
+        class="group inline-flex items-center gap-3 bg-brand hover:bg-brand-dark text-white font-bold text-lg px-8 py-4 rounded-xl transition animate-pulse-glow cursor-pointer shadow-lg shadow-brand/30">
+        Start Pro — $14.20/mo
+        <svg class="group-hover:translate-x-1 transition" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </a>
+      <a data-gumroad-action="buy" data-gumroad-option="Untitled" data-gumroad-recurrence="yearly"
+        class="inline-flex items-center gap-2 border border-white/15 hover:border-brand/40 text-white/70 hover:text-white font-semibold text-base px-6 py-4 rounded-xl transition cursor-pointer">
+        <span class="pill bg-green-500/15 border border-green-500/30 text-green-400 text-xs px-2 py-0.5">Save 30%</span>
+        $119/year
+      </a>
+    </div>
+
+    <p class="text-white/30 text-sm">Cancel anytime · Instant access · No contracts</p>
+  </div>
+
+  <!-- Floating demo card -->
+  <div class="max-w-3xl mx-auto mt-16 reveal" id="hero-card">
+    <div class="rounded-2xl border border-white/10 bg-white/3 backdrop-blur overflow-hidden shadow-2xl">
+      <!-- Terminal header -->
+      <div class="px-5 py-3 border-b border-white/5 flex items-center gap-3 bg-black/30">
+        <div class="flex gap-2">
+          <div class="w-3 h-3 rounded-full bg-red-500/70"></div>
+          <div class="w-3 h-3 rounded-full bg-yellow-500/70"></div>
+          <div class="w-3 h-3 rounded-full bg-green-500/70"></div>
+        </div>
+        <span class="text-white/30 text-xs font-mono">hookerra — content factory</span>
+      </div>
+      <!-- Fake UI -->
+      <div class="p-6 space-y-4">
+        <div class="flex gap-3 items-start">
+          <div class="w-8 h-8 rounded-lg bg-brand/20 border border-brand/30 flex items-center justify-center shrink-0 mt-0.5">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          </div>
+          <div>
+            <p class="text-white/40 text-xs font-mono mb-1">Topic input</p>
+            <p class="text-white text-sm font-medium">"Morning productivity routine for entrepreneurs"</p>
+          </div>
+        </div>
+        <div class="glow-line"></div>
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div class="rounded-lg bg-white/3 border border-white/8 p-3">
+            <div class="pill bg-red-500/10 border border-red-500/20 text-red-400 text-xs mb-2">3 Hooks</div>
+            <p class="text-white/70 text-xs leading-relaxed">"Your 5am routine isn't the problem — your first 5 minutes are."</p>
+          </div>
+          <div class="rounded-lg bg-white/3 border border-white/8 p-3">
+            <div class="pill bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs mb-2">Script</div>
+            <p class="text-white/70 text-xs leading-relaxed">Full 60-sec narration script optimized for Reels &amp; TikTok...</p>
+          </div>
+          <div class="rounded-lg bg-white/3 border border-white/8 p-3">
+            <div class="pill bg-purple-500/10 border border-purple-500/20 text-purple-400 text-xs mb-2">Caption</div>
+            <p class="text-white/70 text-xs leading-relaxed">Algorithm-friendly caption with natural storytelling arc...</p>
+          </div>
+          <div class="rounded-lg bg-white/3 border border-white/8 p-3">
+            <div class="pill bg-orange-500/10 border border-orange-500/20 text-orange-400 text-xs mb-2">3 CTAs</div>
+            <p class="text-white/70 text-xs leading-relaxed">"Save this for tomorrow morning." / "Follow for part 2."</p>
+          </div>
+          <div class="rounded-lg bg-white/3 border border-white/8 p-3">
+            <div class="pill bg-green-500/10 border border-green-500/20 text-green-400 text-xs mb-2">15 Hashtags</div>
+            <p class="text-white/70 text-xs leading-relaxed">#MorningRoutine #ProductivityHacks #EntrepreneurLife...</p>
+          </div>
+          <div class="rounded-lg bg-white/3 border border-white/8 p-3">
+            <div class="pill bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-xs mb-2">7-Day Plan</div>
+            <p class="text-white/70 text-xs leading-relaxed">Mon–Sun content calendar with topics, formats &amp; angles...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── TICKER ─── -->
+<div class="py-4 border-y border-white/5 bg-black/20 overflow-hidden">
+  <div class="ticker-inner animate-marquee">
+    <span class="text-white/20 text-sm font-mono uppercase tracking-widest">Hook Generator</span>
+    <span class="text-brand/60">✦</span>
+    <span class="text-white/20 text-sm font-mono uppercase tracking-widest">Video Script</span>
+    <span class="text-brand/60">✦</span>
+    <span class="text-white/20 text-sm font-mono uppercase tracking-widest">Caption Writer</span>
+    <span class="text-brand/60">✦</span>
+    <span class="text-white/20 text-sm font-mono uppercase tracking-widest">CTA Builder</span>
+    <span class="text-brand/60">✦</span>
+    <span class="text-white/20 text-sm font-mono uppercase tracking-widest">Hashtag Engine</span>
+    <span class="text-brand/60">✦</span>
+    <span class="text-white/20 text-sm font-mono uppercase tracking-widest">Content Plan</span>
+    <span class="text-brand/60">✦</span>
+    <!-- duplicate for seamless loop -->
+    <span class="text-white/20 text-sm font-mono uppercase tracking-widest">Hook Generator</span>
+    <span class="text-brand/60">✦</span>
+    <span class="text-white/20 text-sm font-mono uppercase tracking-widest">Video Script</span>
+    <span class="text-brand/60">✦</span>
+    <span class="text-white/20 text-sm font-mono uppercase tracking-widest">Caption Writer</span>
+    <span class="text-brand/60">✦</span>
+    <span class="text-white/20 text-sm font-mono uppercase tracking-widest">CTA Builder</span>
+    <span class="text-brand/60">✦</span>
+    <span class="text-white/20 text-sm font-mono uppercase tracking-widest">Hashtag Engine</span>
+    <span class="text-brand/60">✦</span>
+    <span class="text-white/20 text-sm font-mono uppercase tracking-widest">Content Plan</span>
+    <span class="text-brand/60">✦</span>
+  </div>
+</div>
+
+<!-- ─── STATS ─── -->
+<section class="py-16 px-6">
+  <div class="max-w-4xl mx-auto grid grid-cols-2 sm:grid-cols-4 gap-6 reveal">
+    <div class="text-center">
+      <div class="text-4xl font-black text-brand mb-1">6</div>
+      <div class="text-white/50 text-sm">Content assets<br/>per generation</div>
+    </div>
+    <div class="text-center">
+      <div class="text-4xl font-black text-white mb-1">7</div>
+      <div class="text-white/50 text-sm">Day content<br/>calendar</div>
+    </div>
+    <div class="text-center">
+      <div class="text-4xl font-black text-brand mb-1">15</div>
+      <div class="text-white/50 text-sm">Hashtags per<br/>generation</div>
+    </div>
+    <div class="text-center">
+      <div class="text-4xl font-black text-white mb-1">1</div>
+      <div class="text-white/50 text-sm">Click to fill<br/>your feed</div>
+    </div>
+  </div>
+</section>
+
+<div class="glow-line max-w-6xl mx-auto"></div>
+
+<!-- ─── THE 6-STAGE PIPELINE ─── -->
+<section class="py-20 px-6" id="pipeline">
+  <div class="max-w-6xl mx-auto">
+    <div class="text-center mb-14 reveal">
+      <div class="pill border border-white/10 bg-white/5 text-white/50 mb-4">The Pipeline</div>
+      <h2 class="text-4xl sm:text-5xl font-black tracking-tight mb-4">
+        One topic.<br/><span class="text-brand">Six weapons.</span>
+      </h2>
+      <p class="text-white/50 text-lg max-w-xl mx-auto">
+        Enter your video idea. Pro generates a complete content arsenal — ready to copy, post, and repeat.
+      </p>
+    </div>
+
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+
+      <!-- Hook -->
+      <div class="card-hover rounded-2xl border border-white/8 bg-white/3 p-6 reveal">
+        <div class="w-10 h-10 rounded-xl bg-red-500/15 border border-red-500/25 flex items-center justify-center mb-4">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        </div>
+        <div class="flex items-center gap-2 mb-2">
+          <span class="text-white/20 text-xs font-mono">01</span>
+          <h3 class="font-bold text-white">Hook</h3>
+          <span class="ml-auto pill bg-red-500/10 border border-red-500/20 text-red-400 text-xs">3 variations</span>
+        </div>
+        <p class="text-white/50 text-sm leading-relaxed">
+          Three scroll-stopping opening lines under 15 words. Each tested against attention psychology to maximize view retention.
+        </p>
+      </div>
+
+      <!-- Script -->
+      <div class="card-hover rounded-2xl border border-white/8 bg-white/3 p-6 reveal">
+        <div class="w-10 h-10 rounded-xl bg-blue-500/15 border border-blue-500/25 flex items-center justify-center mb-4">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        </div>
+        <div class="flex items-center gap-2 mb-2">
+          <span class="text-white/20 text-xs font-mono">02</span>
+          <h3 class="font-bold text-white">Script</h3>
+          <span class="ml-auto pill bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs">Standard depth</span>
+        </div>
+        <p class="text-white/50 text-sm leading-relaxed">
+          A full narration-ready script structured for Reels, TikTok, and Shorts. Built with pacing, tension, and a clear payoff.
+        </p>
+      </div>
+
+      <!-- Caption -->
+      <div class="card-hover rounded-2xl border border-white/8 bg-white/3 p-6 reveal">
+        <div class="w-10 h-10 rounded-xl bg-purple-500/15 border border-purple-500/25 flex items-center justify-center mb-4">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#a855f7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+        </div>
+        <div class="flex items-center gap-2 mb-2">
+          <span class="text-white/20 text-xs font-mono">03</span>
+          <h3 class="font-bold text-white">Caption</h3>
+          <span class="ml-auto pill bg-purple-500/10 border border-purple-500/20 text-purple-400 text-xs">Algorithm-ready</span>
+        </div>
+        <p class="text-white/50 text-sm leading-relaxed">
+          A platform-native caption that complements your video, drives comments, and signals quality to the algorithm.
+        </p>
+      </div>
+
+      <!-- CTA -->
+      <div class="card-hover rounded-2xl border border-white/8 bg-white/3 p-6 reveal">
+        <div class="w-10 h-10 rounded-xl bg-orange-500/15 border border-orange-500/25 flex items-center justify-center mb-4">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f97316" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <div class="flex items-center gap-2 mb-2">
+          <span class="text-white/20 text-xs font-mono">04</span>
+          <h3 class="font-bold text-white">CTAs</h3>
+          <span class="ml-auto pill bg-orange-500/10 border border-orange-500/20 text-orange-400 text-xs">3 options</span>
+        </div>
+        <p class="text-white/50 text-sm leading-relaxed">
+          Three tested calls-to-action that convert viewers into followers, saves, and shares — not passive watchers.
+        </p>
+      </div>
+
+      <!-- Hashtags -->
+      <div class="card-hover rounded-2xl border border-white/8 bg-white/3 p-6 reveal">
+        <div class="w-10 h-10 rounded-xl bg-green-500/15 border border-green-500/25 flex items-center justify-center mb-4">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg>
+        </div>
+        <div class="flex items-center gap-2 mb-2">
+          <span class="text-white/20 text-xs font-mono">05</span>
+          <h3 class="font-bold text-white">Hashtags</h3>
+          <span class="ml-auto pill bg-green-500/10 border border-green-500/20 text-green-400 text-xs">15 per gen</span>
+        </div>
+        <p class="text-white/50 text-sm leading-relaxed">
+          A curated mix of niche, mid-range, and trending hashtags that maximize reach without burying your content.
+        </p>
+      </div>
+
+      <!-- Content Plan -->
+      <div class="card-hover rounded-2xl border border-white/8 bg-white/3 p-6 reveal">
+        <div class="w-10 h-10 rounded-xl bg-yellow-500/15 border border-yellow-500/25 flex items-center justify-center mb-4">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#eab308" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </div>
+        <div class="flex items-center gap-2 mb-2">
+          <span class="text-white/20 text-xs font-mono">06</span>
+          <h3 class="font-bold text-white">Content Plan</h3>
+          <span class="ml-auto pill bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-xs">7-day calendar</span>
+        </div>
+        <p class="text-white/50 text-sm leading-relaxed">
+          A structured 7-day posting schedule with topics, angles, and formats — so your entire week is planned in seconds.
+        </p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<div class="glow-line max-w-6xl mx-auto"></div>
+
+<!-- ─── BEFORE / AFTER ─── -->
+<section class="py-20 px-6" id="compare">
+  <div class="max-w-5xl mx-auto">
+    <div class="text-center mb-14 reveal">
+      <div class="pill border border-white/10 bg-white/5 text-white/50 mb-4">Before vs. After</div>
+      <h2 class="text-4xl sm:text-5xl font-black tracking-tight">
+        This is the difference<br/><span class="text-brand">Pro makes.</span>
+      </h2>
+    </div>
+
+    <div class="grid sm:grid-cols-2 gap-6 reveal">
+      <!-- Before -->
+      <div class="rounded-2xl border border-white/8 bg-white/2 p-6">
+        <div class="pill border border-white/10 bg-white/5 text-white/40 mb-5 text-xs">❌ Without Hookerra Pro</div>
+        <ul class="space-y-3">
+          <li class="flex gap-3 text-white/40 text-sm"><span class="text-red-500/60 mt-0.5">✕</span> Hours burned staring at a blank caption</li>
+          <li class="flex gap-3 text-white/40 text-sm"><span class="text-red-500/60 mt-0.5">✕</span> Generic hooks that nobody stops for</li>
+          <li class="flex gap-3 text-white/40 text-sm"><span class="text-red-500/60 mt-0.5">✕</span> Posting inconsistently, losing momentum</li>
+          <li class="flex gap-3 text-white/40 text-sm"><span class="text-red-500/60 mt-0.5">✕</span> Recycling the same tired CTAs</li>
+          <li class="flex gap-3 text-white/40 text-sm"><span class="text-red-500/60 mt-0.5">✕</span> Random hashtags that reach nobody</li>
+          <li class="flex gap-3 text-white/40 text-sm"><span class="text-red-500/60 mt-0.5">✕</span> No content strategy — just vibes</li>
+        </ul>
+      </div>
+      <!-- After -->
+      <div class="rounded-2xl border border-brand/25 bg-brand/5 p-6">
+        <div class="pill bg-brand/10 border border-brand/25 text-brand mb-5 text-xs">✓ With Hookerra Pro</div>
+        <ul class="space-y-3">
+          <li class="flex gap-3 text-white/80 text-sm"><span class="text-green-400 mt-0.5">✓</span> Full content pack generated in under 10 seconds</li>
+          <li class="flex gap-3 text-white/80 text-sm"><span class="text-green-400 mt-0.5">✓</span> 3 high-impact hooks that stop the scroll</li>
+          <li class="flex gap-3 text-white/80 text-sm"><span class="text-green-400 mt-0.5">✓</span> 7-day calendar so you always know what's next</li>
+          <li class="flex gap-3 text-white/80 text-sm"><span class="text-green-400 mt-0.5">✓</span> 3 CTAs engineered to convert viewers</li>
+          <li class="flex gap-3 text-white/80 text-sm"><span class="text-green-400 mt-0.5">✓</span> 15 targeted hashtags per generation</li>
+          <li class="flex gap-3 text-white/80 text-sm"><span class="text-green-400 mt-0.5">✓</span> A complete content strategy from one topic</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="glow-line max-w-6xl mx-auto"></div>
+
+<!-- ─── PRICING ─── -->
+<section class="py-20 px-6" id="pricing">
+  <div class="max-w-5xl mx-auto">
+    <div class="text-center mb-12 reveal">
+      <div class="pill border border-white/10 bg-white/5 text-white/50 mb-4">Pricing</div>
+      <h2 class="text-4xl sm:text-5xl font-black tracking-tight mb-6">
+        One plan.<br/><span class="text-brand">Total creative freedom.</span>
+      </h2>
+
+      <!-- Billing toggle -->
+      <div class="inline-flex items-center gap-3 bg-white/5 border border-white/10 rounded-xl p-1.5">
+        <button id="monthly-btn" onclick="setBilling('monthly')"
+          class="px-5 py-2 rounded-lg text-sm font-semibold transition billing-btn active-billing">
+          Monthly
+        </button>
+        <button id="yearly-btn" onclick="setBilling('yearly')"
+          class="px-5 py-2 rounded-lg text-sm font-semibold transition billing-btn">
+          Yearly
+          <span class="ml-1.5 pill bg-green-500/15 border border-green-500/30 text-green-400 text-xs px-2 py-0.5">-30%</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="max-w-md mx-auto reveal">
+      <div class="rounded-2xl border border-brand/30 bg-gradient-to-b from-brand/8 to-transparent p-8 relative overflow-hidden animate-pulse-glow">
+        <!-- Popular badge -->
+        <div class="absolute top-0 right-6 -translate-y-1/2">
+          <span class="pill bg-brand text-white text-xs px-4 py-1.5 shadow-lg shadow-brand/30">Most Popular</span>
+        </div>
+
+        <div class="flex items-center gap-3 mb-6">
+          <div class="w-10 h-10 bg-brand rounded-xl flex items-center justify-center">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          </div>
+          <div>
+            <h3 class="text-xl font-black text-white">Hookerra Pro</h3>
+            <p class="text-white/40 text-sm">Full Content Factory access</p>
+          </div>
+        </div>
+
+        <!-- Price display -->
+        <div id="price-display" class="mb-6">
+          <div class="flex items-end gap-2 mb-1">
+            <span id="price-amount" class="text-5xl font-black text-white">$14.20</span>
+            <span id="price-period" class="text-white/40 text-lg mb-2">/month</span>
+          </div>
+          <p id="price-sub" class="text-white/40 text-sm">Billed monthly · Cancel anytime</p>
+        </div>
+
+        <!-- Features -->
+        <ul class="space-y-3 mb-8">
+          <li class="flex items-center gap-3 text-white/80 text-sm">
+            <span class="w-5 h-5 rounded-full bg-brand/20 border border-brand/40 flex items-center justify-center shrink-0 text-brand text-xs">✓</span>
+            <strong>3 hooks</strong>&nbsp;per generation
+          </li>
+          <li class="flex items-center gap-3 text-white/80 text-sm">
+            <span class="w-5 h-5 rounded-full bg-brand/20 border border-brand/40 flex items-center justify-center shrink-0 text-brand text-xs">✓</span>
+            Full narration <strong>script</strong>&nbsp;(standard depth)
+          </li>
+          <li class="flex items-center gap-3 text-white/80 text-sm">
+            <span class="w-5 h-5 rounded-full bg-brand/20 border border-brand/40 flex items-center justify-center shrink-0 text-brand text-xs">✓</span>
+            <strong>Caption</strong>&nbsp;+ <strong>3 CTAs</strong>
+          </li>
+          <li class="flex items-center gap-3 text-white/80 text-sm">
+            <span class="w-5 h-5 rounded-full bg-brand/20 border border-brand/40 flex items-center justify-center shrink-0 text-brand text-xs">✓</span>
+            <strong>15 hashtags</strong>&nbsp;per generation
+          </li>
+          <li class="flex items-center gap-3 text-white/80 text-sm">
+            <span class="w-5 h-5 rounded-full bg-brand/20 border border-brand/40 flex items-center justify-center shrink-0 text-brand text-xs">✓</span>
+            <strong>7-day</strong>&nbsp;content calendar
+          </li>
+          <li class="flex items-center gap-3 text-white/80 text-sm">
+            <span class="w-5 h-5 rounded-full bg-brand/20 border border-brand/40 flex items-center justify-center shrink-0 text-brand text-xs">✓</span>
+            Unlimited generations
+          </li>
+          <li class="flex items-center gap-3 text-white/80 text-sm">
+            <span class="w-5 h-5 rounded-full bg-brand/20 border border-brand/40 flex items-center justify-center shrink-0 text-brand text-xs">✓</span>
+            One-click copy for every asset
+          </li>
+        </ul>
+
+        <!-- Buy button -->
+        <a id="main-buy-btn"
+          data-gumroad-action="buy"
+          data-gumroad-option="Untitled"
+          data-gumroad-recurrence="monthly"
+          class="block w-full text-center bg-brand hover:bg-brand-dark text-white font-bold text-base py-4 rounded-xl transition cursor-pointer shadow-lg shadow-brand/25">
+          Get Pro — $14.20/month
+        </a>
+
+        <p class="text-center text-white/25 text-xs mt-4">Cancel anytime from your dashboard · No hidden fees</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="glow-line max-w-6xl mx-auto"></div>
+
+<!-- ─── FAQ ─── -->
+<section class="py-20 px-6" id="faq">
+  <div class="max-w-2xl mx-auto">
+    <div class="text-center mb-12 reveal">
+      <div class="pill border border-white/10 bg-white/5 text-white/50 mb-4">FAQ</div>
+      <h2 class="text-4xl font-black tracking-tight">Common questions</h2>
+    </div>
+
+    <div class="space-y-3 reveal" id="faq-list">
+
+      <div class="faq-item rounded-xl border border-white/8 bg-white/3 overflow-hidden">
+        <button onclick="toggleFaq(this)" class="w-full flex items-center justify-between p-5 text-left text-white font-semibold text-sm hover:bg-white/3 transition">
+          What languages does Hookerra support?
+          <svg class="faq-arrow shrink-0 transition-transform" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-body hidden px-5 pb-5 text-white/50 text-sm leading-relaxed">
+          Hookerra generates content in the language you type in. Write your topic in English and you'll get English content — or in Turkish, Spanish, German, etc. The AI adapts natively to your input.
+        </div>
+      </div>
+
+      <div class="faq-item rounded-xl border border-white/8 bg-white/3 overflow-hidden">
+        <button onclick="toggleFaq(this)" class="w-full flex items-center justify-between p-5 text-left text-white font-semibold text-sm hover:bg-white/3 transition">
+          How many generations do I get per month?
+          <svg class="faq-arrow shrink-0 transition-transform" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-body hidden px-5 pb-5 text-white/50 text-sm leading-relaxed">
+          Pro includes a generous monthly generation limit that's more than enough for daily content creators. Each generation produces all 6 assets at once — hooks, script, caption, CTAs, hashtags, and your 7-day plan.
+        </div>
+      </div>
+
+      <div class="faq-item rounded-xl border border-white/8 bg-white/3 overflow-hidden">
+        <button onclick="toggleFaq(this)" class="w-full flex items-center justify-between p-5 text-left text-white font-semibold text-sm hover:bg-white/3 transition">
+          Can I cancel my subscription anytime?
+          <svg class="faq-arrow shrink-0 transition-transform" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-body hidden px-5 pb-5 text-white/50 text-sm leading-relaxed">
+          Yes — cancel anytime from your Gumroad account with one click. You keep Pro access through the end of your current billing period, then your account reverts to the free tier automatically.
+        </div>
+      </div>
+
+      <div class="faq-item rounded-xl border border-white/8 bg-white/3 overflow-hidden">
+        <button onclick="toggleFaq(this)" class="w-full flex items-center justify-between p-5 text-left text-white font-semibold text-sm hover:bg-white/3 transition">
+          What platforms is the content optimized for?
+          <svg class="faq-arrow shrink-0 transition-transform" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-body hidden px-5 pb-5 text-white/50 text-sm leading-relaxed">
+          Primarily short-form video: Instagram Reels, TikTok, and YouTube Shorts. The hooks, scripts, and captions are tuned for these formats — though the writing works just as well for LinkedIn posts, Twitter/X threads, and newsletters.
+        </div>
+      </div>
+
+      <div class="faq-item rounded-xl border border-white/8 bg-white/3 overflow-hidden">
+        <button onclick="toggleFaq(this)" class="w-full flex items-center justify-between p-5 text-left text-white font-semibold text-sm hover:bg-white/3 transition">
+          Is there a free trial?
+          <svg class="faq-arrow shrink-0 transition-transform" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div class="faq-body hidden px-5 pb-5 text-white/50 text-sm leading-relaxed">
+          Hookerra has a free Starter tier — no credit card required — so you can test the output quality before upgrading. The Starter tier generates 2 hooks per run with a 3-day content plan. Pro removes those limits.
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ─── FINAL CTA ─── -->
+<section class="py-20 px-6 relative overflow-hidden">
+  <div class="absolute inset-0 bg-gradient-to-b from-transparent via-brand/5 to-transparent pointer-events-none"></div>
+  <div class="max-w-3xl mx-auto text-center relative z-10 reveal">
+    <h2 class="text-5xl sm:text-6xl font-black tracking-tight mb-6">
+      Your content.<br/>
+      <span class="text-brand">On autopilot.</span>
+    </h2>
+    <p class="text-white/50 text-lg mb-10 max-w-xl mx-auto">
+      Stop piecing together content tools. Get everything you need to dominate your feed — in one click.
+    </p>
+    <div class="flex flex-col sm:flex-row gap-4 justify-center">
+      <a data-gumroad-action="buy" data-gumroad-option="Untitled" data-gumroad-recurrence="monthly"
+        class="group inline-flex items-center justify-center gap-3 bg-brand hover:bg-brand-dark text-white font-bold text-lg px-10 py-5 rounded-xl transition animate-pulse-glow cursor-pointer shadow-xl shadow-brand/30">
+        Start Pro — $14.20/mo
+        <svg class="group-hover:translate-x-1 transition" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+      </a>
+      <a data-gumroad-action="buy" data-gumroad-option="Untitled" data-gumroad-recurrence="yearly"
+        class="inline-flex items-center justify-center gap-2 border border-white/15 hover:border-brand/40 text-white/70 hover:text-white font-semibold text-base px-8 py-5 rounded-xl transition cursor-pointer">
+        Go yearly — save 30%
+      </a>
+    </div>
+    <p class="text-white/25 text-sm mt-6">Cancel anytime · Instant dashboard access · Powered by Gemini AI</p>
+  </div>
+</section>
+
+<!-- ─── FOOTER ─── -->
+<footer class="border-t border-white/5 py-10 px-6">
+  <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+    <div class="flex items-center gap-2">
+      <div class="w-6 h-6 bg-brand rounded-md flex items-center justify-center">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+      </div>
+      <span class="font-bold text-white/60 text-sm">hookerra</span>
+    </div>
+    <div class="flex gap-6 text-white/30 text-xs">
+      <a href="https://hookerra.gumroad.com/l/fcbvfi" class="hover:text-white/60 transition">Product page</a>
+      <span>·</span>
+      <span>© 2026 Hookerra</span>
+    </div>
+  </div>
+</footer>
+
+<!-- ─── SCRIPTS ─── -->
+<style>
+  .billing-btn { color: rgba(255,255,255,0.5); }
+  .billing-btn.active-billing { background: rgba(239,68,68,0.15); color: white; border: 1px solid rgba(239,68,68,0.3); }
+</style>
+
+<script>
+  // ── Theme toggle ──
+  var isDark = true;
+  document.getElementById('theme-btn').addEventListener('click', function() {
+    isDark = !isDark;
+    document.documentElement.classList.toggle('light', !isDark);
+    document.getElementById('theme-icon').textContent = isDark ? '☀️' : '🌙';
+  });
+
+  // ── Billing toggle ──
+  var billing = 'monthly';
+  function setBilling(type) {
+    billing = type;
+    var mBtn = document.getElementById('monthly-btn');
+    var yBtn = document.getElementById('yearly-btn');
+    var buyBtn = document.getElementById('main-buy-btn');
+    var amount = document.getElementById('price-amount');
+    var period = document.getElementById('price-period');
+    var sub = document.getElementById('price-sub');
+
+    if (type === 'monthly') {
+      mBtn.classList.add('active-billing');
+      yBtn.classList.remove('active-billing');
+      buyBtn.setAttribute('data-gumroad-recurrence', 'monthly');
+      buyBtn.textContent = 'Get Pro — $14.20/month';
+      amount.textContent = '$14.20';
+      period.textContent = '/month';
+      sub.textContent = 'Billed monthly · Cancel anytime';
+    } else {
+      yBtn.classList.add('active-billing');
+      mBtn.classList.remove('active-billing');
+      buyBtn.setAttribute('data-gumroad-recurrence', 'yearly');
+      buyBtn.textContent = 'Get Pro — $119/year';
+      amount.textContent = '$119';
+      period.textContent = '/year';
+      sub.textContent = 'Billed yearly · ~$9.92/mo · Save 30%';
+    }
+  }
+
+  // ── FAQ accordion ──
+  function toggleFaq(btn) {
+    var body = btn.nextElementSibling;
+    var arrow = btn.querySelector('.faq-arrow');
+    var isOpen = !body.classList.contains('hidden');
+
+    // close all
+    document.querySelectorAll('.faq-body').forEach(function(b) { b.classList.add('hidden'); });
+    document.querySelectorAll('.faq-arrow').forEach(function(a) { a.style.transform = ''; });
+
+    if (!isOpen) {
+      body.classList.remove('hidden');
+      arrow.style.transform = 'rotate(180deg)';
+    }
+  }
+
+  // ── Scroll reveal ──
+  var revealEls = document.querySelectorAll('.reveal');
+  var observer = new IntersectionObserver(function(entries) {
+    entries.forEach(function(e) {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.1 });
+  revealEls.forEach(function(el) { observer.observe(el); });
+</script>
+
+</body>
+</html>

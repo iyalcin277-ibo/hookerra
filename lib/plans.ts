@@ -1,15 +1,15 @@
 export type TierId = 'starter' | 'pro' | 'unlimited';
 
-/** Ücretsiz pakette seçilebilen tonlar */
-export const FREE_TONES = ['Profesyonel', 'Samimi', 'Sokak Stili'] as const;
+/** Tones available on the free tier */
+export const FREE_TONES = ['Professional', 'Casual', 'Street Style'] as const;
 export type FreeTone = (typeof FREE_TONES)[number];
 
-/** Tüm tonlar (premium’da hepsi açık) */
+/** All tones (all unlocked on premium) */
 export const ALL_TONES = [
   ...FREE_TONES,
-  'Agresif',
-  'Şok Edici',
-  'Komik',
+  'Aggressive',
+  'Shocking',
+  'Funny',
 ] as const;
 export type HookTone = (typeof ALL_TONES)[number];
 
@@ -31,19 +31,50 @@ export function monthlyGenerationLimit(tier: TierId): number | 'unlimited' {
   }
 }
 
-/** Ücretsiz: 3 hook; Pro ve Sınırsız: 5 hook */
+/** Legacy: hooks per response for old route */
 export function hooksPerResponse(tier: TierId): number {
   return tier === 'starter' ? 3 : 5;
+}
+
+/** Legacy: hashtags for old separate route */
+export function hashtagsPerResponse(tier: TierId): number | null {
+  if (tier === 'pro') return 15;
+  if (tier === 'unlimited') return 30;
+  return null;
+}
+
+/** Full content factory output settings per tier */
+export interface ContentGenSettings {
+  hookCount: number;
+  ctaCount: number | 'unlimited';
+  hashtagCount: number;
+  scriptDepth: 'basic' | 'standard' | 'full';
+}
+
+export function contentGenSettings(tier: TierId): ContentGenSettings {
+  switch (tier) {
+    case 'starter':
+      return { hookCount: 2, ctaCount: 1, hashtagCount: 5, scriptDepth: 'basic' };
+    case 'pro':
+      return { hookCount: 3, ctaCount: 50, hashtagCount: 15, scriptDepth: 'standard' };
+    default:
+      return { hookCount: 5, ctaCount: 'unlimited', hashtagCount: 30, scriptDepth: 'full' };
+  }
+}
+
+/** Resolves ctaCount to a concrete number for use in AI prompts. */
+export function resolveCTACount(ctaCount: number | 'unlimited'): number {
+  return ctaCount === 'unlimited' ? 20 : ctaCount;
 }
 
 export function planDisplayName(tier: TierId): string {
   switch (tier) {
     case 'starter':
-      return 'Ücretsiz';
+      return 'Free';
     case 'pro':
       return 'Pro';
     default:
-      return 'Sınırsız';
+      return 'Unlimited';
   }
 }
 
@@ -56,7 +87,7 @@ export function isFreeTone(tone: string): tone is FreeTone {
   return FREE_TONES.includes(tone as FreeTone);
 }
 
-/** Fiyatlandırma sayfası ($ USD) */
+/** Pricing (USD) */
 export const PRICING_USD = {
   proMonthly: 14.2,
   unlimitedMonthly: 28.5,
@@ -69,6 +100,15 @@ export function yearlyMonthlyEquivalent(monthly: number): number {
 
 export function yearlyTotalUsd(monthly: number): number {
   return Math.round(monthly * 12 * (1 - PRICING_USD.yearlyDiscountPercent / 100) * 100) / 100;
+}
+
+/** Shared content pack type — used by both the API route and the dashboard client */
+export interface ContentPack {
+  hooks: string[];
+  script: string;
+  caption: string;
+  ctas: string[];
+  hashtags: string[];
 }
 
 export function startOfUtcMonthIso(): string {

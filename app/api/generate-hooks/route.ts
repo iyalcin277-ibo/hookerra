@@ -16,14 +16,13 @@ function startOfUtcMonth(): string {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { topic, tone, platform } = body as {
+    const { topic, tone } = body as {
       topic?: string;
       tone?: string;
-      platform?: string;
     };
 
     if (!topic?.trim()) {
-      return NextResponse.json({ error: 'Konu gerekli.' }, { status: 400 });
+      return NextResponse.json({ error: 'Topic is required.' }, { status: 400 });
     }
 
     const supabase = await createClient();
@@ -32,7 +31,7 @@ export async function POST(request: Request) {
     } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: 'Oturum gerekli.' }, { status: 401 });
+      return NextResponse.json({ error: 'Authentication required.' }, { status: 401 });
     }
 
     const { data: profile } = await supabase
@@ -46,8 +45,7 @@ export async function POST(request: Request) {
     if (!isToneUnlockedForTier(tier, tone ?? '')) {
       return NextResponse.json(
         {
-          error:
-            'Bu ton yalnızca Pro veya Sınırsız pakette kullanılabilir. Paketini yükselt.',
+          error: 'This tone is only available on Pro or Unlimited plans. Upgrade to unlock it.',
           code: 'TONE_LOCKED',
         },
         { status: 403 }
@@ -68,7 +66,7 @@ export async function POST(request: Request) {
       if ((count ?? 0) >= limit) {
         return NextResponse.json(
           {
-            error: `Bu ayki ${limit} üretim hakkınız doldu. Pro veya Sınırsız pakete geçin.`,
+            error: `You have reached your monthly limit of ${limit} generations. Upgrade to Pro or Unlimited.`,
             code: 'LIMIT',
           },
           { status: 402 }
@@ -81,7 +79,7 @@ export async function POST(request: Request) {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       return NextResponse.json(
-        { error: 'Sunucu yapılandırması eksik (GEMINI_API_KEY).' },
+        { error: 'Server configuration error (GEMINI_API_KEY missing).' },
         { status: 500 }
       );
     }
@@ -89,15 +87,14 @@ export async function POST(request: Request) {
     const model = process.env.GEMINI_MODEL?.trim() || 'gemini-2.5-flash';
 
     const ai = new GoogleGenAI({ apiKey });
-    const systemInstruction = `Sen viral sosyal medya stratejisti rolündesin. Kullanıcı girdisinin dilinde (Türkçe veya İngilizce) yanıt ver.
-Çıktı SADECE geçerli JSON olmalı; markdown veya açıklama yok. Şema tam olarak: {"hooks":[ ... tam olarak ${hookTarget} adet string ... ]}
-Her öğe tek satır, ilk 3 saniyede kaydıran güçlü bir kanca cümlesi olsun. hooks dizisi uzunluğu kesinlikle ${hookTarget} olmalı.`;
+    const systemInstruction = `You are a viral social media strategist. Respond in the same language as the user's input (English or any other language).
+Output ONLY valid JSON; no markdown or explanations. Schema exactly: {"hooks":[ ... exactly ${hookTarget} strings ... ]}
+Each item must be a single line — a powerful opening sentence optimized to stop the scroll in the first 3 seconds. The hooks array length must be exactly ${hookTarget}.`;
 
-    const userPrompt = `Konu: ${topic.trim()}
-Ton: ${tone ?? 'Profesyonel'}
-Platform: ${platform ?? 'X'}
+    const userPrompt = `Topic: ${topic.trim()}
+Tone: ${tone ?? 'Professional'}
 
-Tam ${hookTarget} hook üret; JSON şemasına uy.`;
+Generate exactly ${hookTarget} hooks; follow the JSON schema.`;
 
     const response = await ai.models.generateContent({
       model,
@@ -125,7 +122,7 @@ Tam ${hookTarget} hook üret; JSON şemasına uy.`;
 
     if (hooks.length === 0) {
       return NextResponse.json(
-        { error: 'AI çıktısı işlenemedi. Tekrar deneyin.' },
+        { error: 'Could not parse AI output. Please try again.' },
         { status: 422 }
       );
     }
@@ -134,23 +131,23 @@ Tam ${hookTarget} hook üret; JSON şemasına uy.`;
       user_id: user.id,
       input_text: topic.trim(),
       tone: tone ?? null,
-      platform: platform ?? null,
+      platform: null,
       ai_output: { hooks },
     });
 
     if (insertError) {
       console.error(insertError);
-      let detail = insertError.message ?? 'Bilinmeyen Supabase hatası.';
+      let detail = insertError.message ?? 'Unknown Supabase error.';
       if (insertError.code === 'PGRST205') {
         detail +=
-          ' Tablo eksik veya API henüz görmüyor: SQL Editor’da `supabase/migrations/001_hookerra.sql` ve ardından `002_generations_api_fix.sql` çalıştırın; Dashboard’da project doğru olduğundan emin olun.';
+          ' Table missing or not visible to API: run supabase/migrations/001_hookerra.sql then 002_generations_api_fix.sql in the SQL Editor and make sure the project is correct.';
       }
       if (insertError.code === '42501') {
-        detail += ' İzin (GRANT) veya RLS reddi — migration’daki grant/policy satırlarını uygulayın.';
+        detail += ' Permission (GRANT) or RLS denial — apply the grant/policy lines in the migration.';
       }
       if (insertError.code === '23514') {
         detail +=
-          ' profiles.subscription_status değeri geçersiz: SQL’de `003_profiles_subscription_pro_unlimited.sql` çalıştırın.';
+          ' profiles.subscription_status value is invalid: run supabase/migrations/003_profiles_subscription_pro_unlimited.sql.';
       }
       return NextResponse.json(
         { error: detail, code: insertError.code },
@@ -162,7 +159,7 @@ Tam ${hookTarget} hook üret; JSON şemasına uy.`;
   } catch (e) {
     console.error(e);
     const msg =
-      e instanceof Error ? e.message.slice(0, 400) : 'Beklenmeyen hata.';
+      e instanceof Error ? e.message.slice(0, 400) : 'Unexpected error.';
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

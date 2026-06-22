@@ -28,13 +28,13 @@ export function PublicNav({
             href="/pricing"
             className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#A0A0A0] transition hover:text-white"
           >
-            Fiyatlandırma
+            Pricing
           </Link>
           <Link
-            href="/#nasil-calisir"
+            href="/#how-it-works"
             className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#A0A0A0] transition hover:text-white"
           >
-            Nasıl Çalışır
+            How It Works
           </Link>
         </div>
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
@@ -43,14 +43,14 @@ export function PublicNav({
               href="/dashboard"
               className="rounded-xl px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#121212]"
             >
-              Panel
+              Dashboard
             </Link>
           ) : (
             <Link
               href="/login"
               className="rounded-xl px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#121212]"
             >
-              Giriş Yap
+              Sign In
             </Link>
           )}
           <Link
@@ -60,7 +60,7 @@ export function PublicNav({
               'bg-[#FF0000] hover:bg-[#CC0000] neon-red-glow'
             )}
           >
-            Hemen Başla
+            Get Started
           </Link>
         </div>
       </div>

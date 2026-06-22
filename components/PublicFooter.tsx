@@ -13,12 +13,12 @@ export function PublicFooter({ logoHref = '/' }: { logoHref?: string }) {
         </div>
         <div className="flex flex-wrap justify-center gap-6">
           {[
-            ['Fiyatlandırma', '/pricing'],
-            ['Hakkımızda', '/about'],
-            ['Kullanım Şartları', '/terms'],
-            ['Gizlilik', '/privacy'],
-            ['İade', '/refund'],
-            ['İletişim', '/contact'],
+            ['Pricing', '/pricing'],
+            ['About', '/about'],
+            ['Terms', '/terms'],
+            ['Privacy', '/privacy'],
+            ['Refund', '/refund'],
+            ['Contact', '/contact'],
           ].map(([label, href]) => (
             <Link
               key={href}

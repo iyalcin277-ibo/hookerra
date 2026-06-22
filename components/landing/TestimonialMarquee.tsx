@@ -7,61 +7,61 @@ import { cn } from '@/lib/utils';
 export const LANDING_TESTIMONIALS = [
   {
     quote:
-      'İlk cümleyi 20 kez yeniden yazmak yerine saniyeler içinde güçlü varyasyonlar alıyorum — kaydırma gerçekten duruyor.',
+      'Instead of rewriting the first sentence 20 times, I get strong variations in seconds — the scroll actually stops.',
     name: 'Sarah Mitchell',
     role: 'Content Creator',
   },
   {
     quote:
-      'LinkedIn ve X için tonları ayırabilmek iş akışımızı hızlandırdı; iç onay süremiz yarı yarıya kısaldı.',
+      'Being able to separate tones for LinkedIn and X sped up our workflow; our internal approval time was cut in half.',
     name: 'James Porter',
     role: 'Growth Lead',
   },
   {
     quote:
-      'Ürün videolarında “sıradan giriş” sorunumuz vardı. Açılış cümleleri artık çok daha keskin.',
+      'We had a "boring opener" problem with product videos. Opening lines are so much sharper now.',
     name: 'Emily Carter',
     role: 'Brand Manager',
   },
   {
     quote:
-      'Solo creator olarak script başına harcadığım zaman dramatik şekilde azaldı; hook kalitesi stabil.',
+      'As a solo creator, the time I spent per script dropped dramatically — and hook quality stays consistent.',
     name: 'Marcus Webb',
     role: 'YouTube Creator',
   },
   {
     quote:
-      'Ekibim brief’ten çıkan ilk satırı tartışmak yerine doğrudan performansa odaklanıyor.',
+      'My team focuses directly on performance instead of debating the first line from the brief.',
     name: 'Olivia Hayes',
     role: 'Social Media Director',
   },
   {
     quote:
-      'Shorts ve Reels için farklı enerji seviyelerinde çıktı almak işimize tam oturdu.',
+      'Getting output at different energy levels for Shorts and Reels fits our workflow perfectly.',
     name: 'Daniel Brooks',
     role: 'Performance Marketer',
   },
   {
     quote:
-      'Kampanya mesajlarında A/B test için çok sayıda hook üretmek artık dakikalar sürmüyor.',
+      'Generating a large batch of hooks for A/B testing campaign messages no longer takes hours.',
     name: 'Rachel Chen',
     role: 'Demand Gen Manager',
   },
   {
     quote:
-      'Ajans müşterilerimize sunum öncesi “hook duvarı” çıkarıyoruz; müşteri tepkisi çok olumlu.',
+      'We put a "hook wall" in front of agency clients before presentations; client reaction has been very positive.',
     name: 'Thomas Reed',
     role: 'Creative Strategist',
   },
   {
     quote:
-      'Teknik ürünleri sıkıcı anlatmak zorundaydık; motor merak uyandıran açılışlar üretiyor.',
+      'We used to struggle to make technical products sound exciting; the engine generates curiosity-driven openers.',
     name: 'Nina Patel',
     role: 'Product Marketing',
   },
   {
     quote:
-      'Ücretsiz paketle bile günlük işimi görüyorum; yükseltme net bir sonraki adım.',
+      'Even the free plan handles my daily needs; upgrading is a clear next step.',
     name: 'Chris Dalton',
     role: 'Indie Founder',
   },

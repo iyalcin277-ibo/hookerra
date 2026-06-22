@@ -59,35 +59,44 @@ export default function PricingPage() {
   const plans = [
     {
       id: 'starter',
-      name: 'Ücretsiz',
+      name: 'Free',
       highlight: false,
       badge: null as string | null,
+      href: '/dashboard',
       lines: [
-        'Ayda 10 hook üretim hakkı',
-        'Tonlar: Profesyonel, Samimi, Sokak Stili',
-        'Her üretimde 3 hook sonucu',
+        '10 generations / month',
+        'Tones: Professional, Casual, Street Style',
+        '2 hooks per generation',
+        'Video Script & Caption',
+        '1 CTA · 5 hashtags',
       ],
     },
     {
       id: 'pro',
       name: 'Pro',
       highlight: true,
-      badge: 'Popüler',
+      badge: 'Popular',
+      href: 'https://hookerra.gumroad.com/l/fcbvfi?_gl=1*yn3w2v*_ga*MTc0NTcxMjUxNC4xNzgxODA3NTgz*_ga_6LJN6D94N6*czE3ODIwNjQxNzIkbzQkZzAkdDE3ODIwNjQxNzIkajYwJGwwJGgw',
       lines: [
-        'Ayda 50 hook üretim hakkı',
-        'Tüm tonlar (Profesyonel … Komik)',
-        'Her üretimde 5 hook',
+        '50 generations / month',
+        'All tones (Professional … Funny)',
+        '3 hooks per generation',
+        'Video Script & Caption',
+        '50 CTAs · 15 hashtags',
       ],
     },
     {
       id: 'unlimited',
-      name: 'Sınırsız',
+      name: 'Unlimited',
       highlight: false,
       badge: null,
+      href: 'https://hookerra.gumroad.com/l/vopdx?_gl=1*hn9zuj*_ga*MTc0NTcxMjUxNC4xNzgxODA3NTgz*_ga_6LJN6D94N6*czE3ODIwNjQxNzIkbzQkZzAkdDE3ODIwNjQxNzIkajYwJGwwJGgw',
       lines: [
-        'Sınırsız hook üretimi',
-        'Tüm tonlar + yeni özelliklere öncelikli erişim',
-        'Her üretimde 5 hook',
+        'Unlimited generations',
+        'All tones + early access to new features',
+        '5 hooks per generation',
+        'Video Script & Caption',
+        'Unlimited CTAs · 30 hashtags',
       ],
     },
   ];
@@ -98,10 +107,10 @@ export default function PricingPage() {
       <main className="flex-1 px-6 pb-20 pt-24">
         <div className="mx-auto max-w-5xl text-center">
           <h1 className="font-display text-4xl font-black text-white sm:text-5xl">
-            Paketleri <span className="text-[#FF0000]">keşfet</span>
+            Explore our <span className="text-[#FF0000]">plans</span>
           </h1>
           <p className="mt-4 text-[#A0A0A0]">
-            Ücretsiz ile başla; Pro veya Sınırsız ile tonların tamamını ve daha fazla üretimi aç.
+            Start free; upgrade to Pro or Unlimited to unlock all tones, hashtags and more generations.
           </p>
 
           <div className="mx-auto mt-10 flex max-w-md flex-col items-center gap-4">
@@ -116,7 +125,7 @@ export default function PricingPage() {
                     : 'text-[#A0A0A0] hover:text-white'
                 )}
               >
-                Aylık
+                Monthly
               </button>
               <button
                 type="button"
@@ -128,11 +137,11 @@ export default function PricingPage() {
                     : 'text-[#A0A0A0] hover:text-white'
                 )}
               >
-                Yıllık
+                Yearly
               </button>
             </div>
             <p className="text-center text-xs font-bold uppercase tracking-[0.2em] text-[#FF0000] neon-red-text">
-              {`Yıllık ödemede %${PRICING_USD.yearlyDiscountPercent} indirim`}
+              {`Save ${PRICING_USD.yearlyDiscountPercent}% with annual billing`}
             </p>
           </div>
         </div>
@@ -155,37 +164,37 @@ export default function PricingPage() {
               )}
               <h2 className="font-display text-2xl font-black text-white">{plan.name}</h2>
               {plan.id === 'starter' && (
-                <PriceHero amount="$0" suffix="/ ay" micro="Kredi kartı gerekmez" />
+                <PriceHero amount="$0" suffix="/ mo" micro="No credit card required" />
               )}
               {plan.id === 'pro' && billing === 'monthly' && (
                 <PriceHero
                   amount={`$${PRICING_USD.proMonthly.toFixed(2)}`}
-                  suffix="/ ay"
+                  suffix="/ mo"
                 />
               )}
               {plan.id === 'pro' && billing === 'yearly' && (
                 <PriceHero
                   amount={`$${proEquiv.toFixed(2)}`}
-                  suffix="/ ay"
-                  micro={`Yıllık faturalanır · ~$${proYearTotal.toFixed(0)} / yıl`}
+                  suffix="/ mo"
+                  micro={`Billed annually · ~$${proYearTotal.toFixed(0)} / year`}
                 />
               )}
               {plan.id === 'unlimited' && billing === 'monthly' && (
                 <PriceHero
                   amount={`$${PRICING_USD.unlimitedMonthly.toFixed(2)}`}
-                  suffix="/ ay"
+                  suffix="/ mo"
                 />
               )}
               {plan.id === 'unlimited' && billing === 'yearly' && (
                 <PriceHero
                   amount={`$${unlEquiv.toFixed(2)}`}
-                  suffix="/ ay"
-                  micro={`Yıllık faturalanır · ~$${unlYearTotal.toFixed(0)} / yıl`}
+                  suffix="/ mo"
+                  micro={`Billed annually · ~$${unlYearTotal.toFixed(0)} / year`}
                 />
               )}
               {billing === 'yearly' && plan.id !== 'starter' && (
                 <p className="mt-3 text-left font-mono text-[10px] font-bold uppercase tracking-[0.18em] text-[#A0A0A0]">
-                  {`Eşdeğer aylık — yıllık %${PRICING_USD.yearlyDiscountPercent} daha az`}
+                  {`Monthly equivalent — ${PRICING_USD.yearlyDiscountPercent}% less per year`}
                 </p>
               )}
               <ul className="mt-8 flex-1 space-y-3 text-sm text-[#A0A0A0]">
@@ -196,7 +205,9 @@ export default function PricingPage() {
                 ))}
               </ul>
               <Link
-                href="/dashboard"
+                href={plan.href}
+                target={plan.href.startsWith('http') ? '_blank' : undefined}
+                rel={plan.href.startsWith('http') ? 'noopener noreferrer' : undefined}
                 className={cn(
                   'mt-10 inline-flex justify-center rounded-xl py-4 text-sm font-bold transition',
                   plan.highlight
@@ -204,7 +215,7 @@ export default function PricingPage() {
                     : 'border border-[#121212] bg-black text-white hover:border-[#FF0000]'
                 )}
               >
-                Başla
+                Get started
               </Link>
             </div>
           ))}
