@@ -48,7 +48,7 @@ function LoginFormInner() {
     setLoading(true);
     try {
       const { error: resetErr } = await supabase.auth.resetPasswordForEmail(resetEmail, {
-        redirectTo: `${window.location.origin}/auth/callback`,
+        redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
       });
       if (resetErr) throw resetErr;
       setResetSent(true);

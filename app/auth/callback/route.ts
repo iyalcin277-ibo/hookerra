@@ -29,8 +29,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL('/login?error=oauth', origin));
   }
 
+  const next = searchParams.get('next') ?? '/dashboard';
   const { url: supabaseUrl, key: supabaseKey } = getSupabasePublicConfig();
-  const response = NextResponse.redirect(new URL('/dashboard', origin));
+  const response = NextResponse.redirect(new URL(next, origin));
 
   const cookieStore = await cookies();
   const allCookies = mergeRequestCookies(request, cookieStore);

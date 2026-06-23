@@ -96,7 +96,7 @@ export default function PricingPage() {
         'All tones + early access to new features',
         '5 hooks per generation',
         'Video Script & Caption',
-        'Unlimited CTAs · 30 hashtags',
+        '50 CTAs · 30 hashtags',
       ],
     },
   ];
