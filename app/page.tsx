@@ -122,7 +122,7 @@ export default async function HomePage() {
               <p className="mt-8 text-sm font-medium text-[#A0A0A0]">
                 Free to start ·{' '}
                 <Link href="/pricing" className="text-[#FF0000] underline-offset-4 hover:underline">
-                  More assets with Pro
+                  1 month free on Pro &amp; Unlimited
                 </Link>
               </p>
             </div>
@@ -311,13 +311,23 @@ export default async function HomePage() {
             <p className="mx-auto mt-6 max-w-xl text-base font-medium text-[#A0A0A0]">
               Hook, Script, Caption, CTA, Hashtags, Content Plan — all six assets from a single prompt.
             </p>
-            <Link href="/dashboard" className="mt-12 inline-block">
+            <div className="mt-10 inline-flex items-center gap-2 rounded-full border border-[#FF0000]/30 bg-[#FF0000]/10 px-5 py-2">
+              <Sparkles className="h-4 w-4 text-[#FF0000]" strokeWidth={2} />
+              <span className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-[#FF0000]">
+                First month free on Pro &amp; Unlimited
+              </span>
+            </div>
+            <Link href="/dashboard" className="mt-6 inline-block">
               <Button className="px-12 py-5 text-lg font-extrabold neon-red-glow shadow-[0_0_40px_rgba(255,0,0,0.25)] transition hover:scale-[1.02] active:scale-[0.98]">
                 Launch Free — No Card Needed
               </Button>
             </Link>
             <p className="mt-8 text-sm font-medium text-[#A0A0A0]">
               No credit card required ·{' '}
+              <Link href="/pricing" className="text-[#FF0000] underline-offset-4 hover:underline">
+                See all plans
+              </Link>
+              {' '}·{' '}
               <Link href="/login" className="text-white underline-offset-4 hover:underline">
                 Sign in
               </Link>
