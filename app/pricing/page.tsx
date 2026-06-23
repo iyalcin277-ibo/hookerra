@@ -1,13 +1,15 @@
 'use client';
 
-import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
 import {
   PRICING_USD,
   yearlyMonthlyEquivalent,
   yearlyTotalUsd,
 } from '@/lib/plans';
+import { getPaddle, PADDLE_PRICE_IDS } from '@/lib/paddle';
+import type { Paddle } from '@paddle/paddle-js';
+import { createClient } from '@/lib/supabase/client';
 import { PublicFooter } from '@/components/PublicFooter';
 import { PublicNav } from '@/components/PublicNav';
 
@@ -43,6 +45,37 @@ function PriceHero({
 
 export default function PricingPage() {
   const [billing, setBilling] = useState<Billing>('monthly');
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const paddleRef = useRef<Paddle | null>(null);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data }) => {
+      setUserEmail(data.user?.email ?? null);
+      setUserId(data.user?.id ?? null);
+    });
+    getPaddle().then((p) => {
+      paddleRef.current = p;
+    });
+  }, []);
+
+  function openCheckout(priceId: string) {
+    const paddle = paddleRef.current;
+    if (!paddle) {
+      console.warn('[paddle] Not initialized yet.');
+      return;
+    }
+    if (!priceId) {
+      console.warn('[paddle] Price ID not configured.');
+      return;
+    }
+    paddle.Checkout.open({
+      items: [{ priceId, quantity: 1 }],
+      customer: userEmail ? { email: userEmail } : undefined,
+      customData: userId ? { userId } : undefined,
+    });
+  }
 
   const proEquiv =
     billing === 'yearly'
@@ -62,6 +95,7 @@ export default function PricingPage() {
       name: 'Free',
       highlight: false,
       badge: null as string | null,
+      priceId: null as string | null,
       href: '/dashboard',
       lines: [
         '10 generations / month',
@@ -76,7 +110,8 @@ export default function PricingPage() {
       name: 'Pro',
       highlight: true,
       badge: 'Popular',
-      href: 'https://hookerra.gumroad.com/l/fcbvfi?_gl=1*yn3w2v*_ga*MTc0NTcxMjUxNC4xNzgxODA3NTgz*_ga_6LJN6D94N6*czE3ODIwNjQxNzIkbzQkZzAkdDE3ODIwNjQxNzIkajYwJGwwJGgw',
+      priceId: billing === 'monthly' ? PADDLE_PRICE_IDS.pro_monthly : PADDLE_PRICE_IDS.pro_yearly,
+      href: null,
       lines: [
         '50 generations / month',
         'All tones (Professional … Funny)',
@@ -90,7 +125,11 @@ export default function PricingPage() {
       name: 'Unlimited',
       highlight: false,
       badge: null,
-      href: 'https://hookerra.gumroad.com/l/vopdx?_gl=1*hn9zuj*_ga*MTc0NTcxMjUxNC4xNzgxODA3NTgz*_ga_6LJN6D94N6*czE3ODIwNjQxNzIkbzQkZzAkdDE3ODIwNjQxNzIkajYwJGwwJGgw',
+      priceId:
+        billing === 'monthly'
+          ? PADDLE_PRICE_IDS.unlimited_monthly
+          : PADDLE_PRICE_IDS.unlimited_yearly,
+      href: null,
       lines: [
         'Unlimited generations',
         'All tones + early access to new features',
@@ -163,14 +202,12 @@ export default function PricingPage() {
                 </span>
               )}
               <h2 className="font-display text-2xl font-black text-white">{plan.name}</h2>
+
               {plan.id === 'starter' && (
                 <PriceHero amount="$0" suffix="/ mo" micro="No credit card required" />
               )}
               {plan.id === 'pro' && billing === 'monthly' && (
-                <PriceHero
-                  amount={`$${PRICING_USD.proMonthly.toFixed(2)}`}
-                  suffix="/ mo"
-                />
+                <PriceHero amount={`$${PRICING_USD.proMonthly.toFixed(2)}`} suffix="/ mo" />
               )}
               {plan.id === 'pro' && billing === 'yearly' && (
                 <PriceHero
@@ -197,6 +234,7 @@ export default function PricingPage() {
                   {`Monthly equivalent — ${PRICING_USD.yearlyDiscountPercent}% less per year`}
                 </p>
               )}
+
               <ul className="mt-8 flex-1 space-y-3 text-sm text-[#A0A0A0]">
                 {plan.lines.map((line) => (
                   <li key={line} className="border-l-4 border-[#FF0000]/60 pl-3">
@@ -204,22 +242,40 @@ export default function PricingPage() {
                   </li>
                 ))}
               </ul>
-              <Link
-                href={plan.href}
-                target={plan.href.startsWith('http') ? '_blank' : undefined}
-                rel={plan.href.startsWith('http') ? 'noopener noreferrer' : undefined}
-                className={cn(
-                  'mt-10 inline-flex justify-center rounded-xl py-4 text-sm font-bold transition',
-                  plan.highlight
-                    ? 'bg-[#FF0000] text-white hover:bg-[#CC0000] neon-red-glow'
-                    : 'border border-[#121212] bg-black text-white hover:border-[#FF0000]'
-                )}
-              >
-                Get started
-              </Link>
+
+              {plan.id === 'starter' ? (
+                <a
+                  href="/dashboard"
+                  className={cn(
+                    'mt-10 inline-flex justify-center rounded-xl py-4 text-sm font-bold transition',
+                    'border border-[#121212] bg-black text-white hover:border-[#FF0000]'
+                  )}
+                >
+                  Get started free
+                </a>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => plan.priceId && openCheckout(plan.priceId)}
+                  className={cn(
+                    'mt-10 inline-flex justify-center rounded-xl py-4 text-sm font-bold transition',
+                    plan.highlight
+                      ? 'bg-[#FF0000] text-white hover:bg-[#CC0000] neon-red-glow shadow-[0_0_15px_rgba(255,0,0,0.3)]'
+                      : 'border border-[#121212] bg-black text-white hover:border-[#FF0000]'
+                  )}
+                >
+                  Get {plan.name}
+                </button>
+              )}
             </div>
           ))}
         </div>
+
+        <p className="mx-auto mt-10 max-w-xl text-center text-xs text-[#A0A0A0]">
+          Payments are processed securely by{' '}
+          <span className="font-semibold text-white">Paddle</span>. Cancel anytime from your
+          billing portal.
+        </p>
       </main>
       <PublicFooter />
     </div>

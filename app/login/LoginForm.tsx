@@ -84,8 +84,12 @@ function LoginFormInner() {
           )}
 
           {resetSent ? (
-            <div className="rounded-xl border border-green-700/40 bg-green-900/20 px-4 py-4 text-center text-sm font-semibold text-green-400">
-              Password reset link sent. Check your inbox.
+            <div className="rounded-xl border border-[#FF0000]/30 bg-[#FF0000]/10 px-4 py-4 text-center text-sm font-semibold text-white">
+              <p>Reset link sent!</p>
+              <p className="mt-2 text-xs font-normal text-[#A0A0A0]">
+                Check your <span className="text-white font-semibold">inbox and spam folder</span>.
+                The link expires in 1 hour.
+              </p>
             </div>
           ) : (
             <form onSubmit={onForgotPassword} className="space-y-4">
