@@ -21,27 +21,18 @@ interface PaddlePriceItem {
   quantity: number;
 }
 
-interface PaddleSubscriptionData {
+interface PaddleWebhookData {
   id: string;
   status: string;
   customer_id: string;
-  custom_data?: { userId?: string };
-  items: PaddlePriceItem[];
-}
-
-interface PaddleTransactionData {
-  id: string;
-  status: string;
-  customer_id: string;
+  customer?: PaddleCustomer;
   custom_data?: { userId?: string };
   items: PaddlePriceItem[];
 }
 
 interface PaddleEvent {
   event_type: PaddleEventType | string;
-  data: (PaddleSubscriptionData | PaddleTransactionData) & {
-    customer?: PaddleCustomer;
-  };
+  data: PaddleWebhookData;
 }
 
 // ─── Signature verification ───────────────────────────────────────────────────
@@ -132,8 +123,7 @@ export async function POST(request: Request) {
 
     // ── subscription.created / subscription.updated ──────────────────────────
     if (event_type === 'subscription.created' || event_type === 'subscription.updated') {
-      const sub = data as PaddleSubscriptionData;
-      const priceId = sub.items[0]?.price?.id;
+      const priceId = data.items[0]?.price?.id;
       const tier = priceId ? tierFromPriceId(priceId) : null;
 
       if (!tier) {
@@ -141,7 +131,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ ok: true, skipped: 'unknown price' });
       }
 
-      const userId = await resolveUserId(adminClient, sub.custom_data, sub.customer?.email);
+      const userId = await resolveUserId(adminClient, data.custom_data, data.customer?.email);
       if (!userId) {
         console.warn('[paddle webhook] Could not resolve user.');
         return NextResponse.json({ error: 'User not found.' }, { status: 404 });
@@ -153,8 +143,7 @@ export async function POST(request: Request) {
 
     // ── subscription.canceled ─────────────────────────────────────────────────
     else if (event_type === 'subscription.canceled') {
-      const sub = data as PaddleSubscriptionData;
-      const userId = await resolveUserId(adminClient, sub.custom_data, sub.customer?.email);
+      const userId = await resolveUserId(adminClient, data.custom_data, data.customer?.email);
       if (userId) {
         await setSubscriptionTier(adminClient, userId, 'starter');
         console.log(`[paddle webhook] ✓ userId=${userId} → starter (canceled)`);
@@ -163,12 +152,11 @@ export async function POST(request: Request) {
 
     // ── transaction.completed (one-time purchases) ────────────────────────────
     else if (event_type === 'transaction.completed') {
-      const tx = data as PaddleTransactionData;
-      const priceId = tx.items[0]?.price?.id;
+      const priceId = data.items[0]?.price?.id;
       const tier = priceId ? tierFromPriceId(priceId) : null;
 
       if (tier) {
-        const userId = await resolveUserId(adminClient, tx.custom_data, tx.customer?.email);
+        const userId = await resolveUserId(adminClient, data.custom_data, data.customer?.email);
         if (userId) {
           await setSubscriptionTier(adminClient, userId, tier);
           console.log(`[paddle webhook] ✓ userId=${userId} → ${tier} (transaction)`);
