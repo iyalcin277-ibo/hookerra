@@ -136,7 +136,7 @@ export default function PricingPage() {
       id: 'pro',
       name: 'Pro',
       highlight: true,
-      badge: hasTrial ? '1 Month Free' : 'Popular',
+      badge: hasTrial ? '1 Month Free' : 'Best Seller',
       trial: hasTrial,
       priceId: billing === 'monthly' ? PADDLE_PRICE_IDS.pro_monthly : PADDLE_PRICE_IDS.pro_yearly,
       lines: [
@@ -310,7 +310,8 @@ export default function PricingPage() {
                 >
                   Get started free
                 </a>
-              ) : (
+              ) : userId ? (
+                /* Logged-in: open Paddle checkout directly */
                 <button
                   type="button"
                   onClick={() => plan.priceId && openCheckout(plan.priceId)}
@@ -321,8 +322,21 @@ export default function PricingPage() {
                       : 'border border-[#121212] bg-black text-white hover:border-[#FF0000]'
                   )}
                 >
-                  {plan.trial ? 'Start Free Trial' : `Get ${plan.name}`}
+                  {plan.trial ? `Upgrade Free — 1 Month Free` : `Upgrade to ${plan.name}`}
                 </button>
+              ) : (
+                /* Guest: send to login first */
+                <a
+                  href={`/login?next=/pricing`}
+                  className={cn(
+                    'mt-10 inline-flex justify-center rounded-xl py-4 text-sm font-bold transition',
+                    plan.highlight
+                      ? 'bg-[#FF0000] text-white hover:bg-[#CC0000] neon-red-glow shadow-[0_0_15px_rgba(255,0,0,0.3)]'
+                      : 'border border-[#121212] bg-black text-white hover:border-[#FF0000]'
+                  )}
+                >
+                  {plan.trial ? 'Start Free Trial' : `Get ${plan.name}`}
+                </a>
               )}
             </div>
           ))}

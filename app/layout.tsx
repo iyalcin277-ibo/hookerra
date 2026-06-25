@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import { TopLoadingBar } from '@/components/TopLoadingBar';
 
 export const metadata: Metadata = {
   title: 'Hookerra — AI Content Factory',
@@ -43,7 +44,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
-      <body className="min-h-screen bg-[#000000] text-white">{children}</body>
+      <body className="min-h-screen bg-[#000000] text-white">
+        <TopLoadingBar />
+        {children}
+      </body>
     </html>
   );
 }

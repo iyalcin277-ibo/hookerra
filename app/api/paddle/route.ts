@@ -84,9 +84,14 @@ async function setSubscriptionTier(
   userId: string,
   tier: 'starter' | 'pro' | 'unlimited'
 ): Promise<void> {
+  const isPaid = tier !== 'starter';
   const { error } = await adminClient
     .from('profiles')
-    .update({ subscription_status: tier })
+    .update({
+      subscription_status: tier,
+      plan: isPaid ? tier : 'free',
+      is_demo: !isPaid,
+    })
     .eq('id', userId);
   if (error) throw error;
 }
