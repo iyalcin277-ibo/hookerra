@@ -3,18 +3,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { tierFromPriceId } from '@/lib/paddle';
 
-// ─── Paddle Billing webhook event types we care about ────────────────────────
-
-type PaddleEventType =
-  | 'subscription.created'
-  | 'subscription.updated'
-  | 'subscription.canceled'
-  | 'transaction.completed';
-
-interface PaddleCustomer {
-  id: string;
-  email: string;
-}
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface PaddlePriceItem {
   price: { id: string; name: string };
@@ -24,22 +13,36 @@ interface PaddlePriceItem {
 interface PaddleWebhookData {
   id: string;
   status: string;
-  customer_id: string;
-  customer?: PaddleCustomer;
-  custom_data?: { userId?: string };
-  items: PaddlePriceItem[];
+  customer_id?: string;
+  // customer object is present in transaction events but not always in subscriptions
+  customer?: { id: string; email: string };
+  custom_data?: Record<string, unknown>;
+  items?: PaddlePriceItem[];
+  details?: { line_items?: PaddlePriceItem[] };
 }
 
 interface PaddleEvent {
-  event_type: PaddleEventType | string;
+  event_type: string;
   data: PaddleWebhookData;
+}
+
+// ─── GET — health check (lets you verify the endpoint is reachable) ───────────
+
+export function GET() {
+  return NextResponse.json({
+    ok: true,
+    endpoint: '/api/paddle',
+    secret_set: !!process.env.PADDLE_WEBHOOK_SECRET,
+    supabase_set: !!(
+      process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
+    ),
+  });
 }
 
 // ─── Signature verification ───────────────────────────────────────────────────
 
 function verifySignature(rawBody: string, signatureHeader: string, secret: string): boolean {
   try {
-    // Header format: ts=<timestamp>;h1=<hmac>
     const ts = signatureHeader.match(/ts=(\d+)/)?.[1];
     const h1 = signatureHeader.match(/h1=([a-f0-9]+)/)?.[1];
     if (!ts || !h1) return false;
@@ -47,69 +50,111 @@ function verifySignature(rawBody: string, signatureHeader: string, secret: strin
     const signed = `${ts}:${rawBody}`;
     const expected = createHmac('sha256', secret).update(signed).digest('hex');
 
-    return timingSafeEqual(Buffer.from(expected, 'hex'), Buffer.from(h1, 'hex'));
+    // buffers must be same length for timingSafeEqual
+    const expBuf = Buffer.from(expected, 'hex');
+    const h1Buf = Buffer.from(h1, 'hex');
+    if (expBuf.length !== h1Buf.length) return false;
+
+    return timingSafeEqual(expBuf, h1Buf);
   } catch {
     return false;
   }
 }
 
-// ─── Admin Supabase helpers ───────────────────────────────────────────────────
+// ─── Supabase admin client ────────────────────────────────────────────────────
 
 function buildAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) throw new Error('Missing Supabase env vars.');
+  if (!url || !key) throw new Error('Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
   return createClient(url, key, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
 }
 
+// ─── Resolve Supabase user ID ─────────────────────────────────────────────────
+
 async function resolveUserId(
   adminClient: ReturnType<typeof buildAdminClient>,
-  customData: { userId?: string } | undefined,
+  customData: Record<string, unknown> | undefined,
   customerEmail?: string
 ): Promise<string | null> {
-  // Prefer explicit userId passed via customData during checkout
-  if (customData?.userId) return customData.userId;
+  // 1. userId explicitly passed via Paddle customData during checkout
+  if (customData?.userId && typeof customData.userId === 'string') {
+    return customData.userId;
+  }
 
-  // Fall back to email lookup (slower, but handles old Gumroad-style flow)
+  // 2. Fall back to email lookup
   if (!customerEmail) return null;
-  const { data } = await adminClient.auth.admin.listUsers({ page: 1, perPage: 1000 });
-  const user = data?.users.find((u) => u.email?.toLowerCase() === customerEmail.toLowerCase());
-  return user?.id ?? null;
+
+  const { data, error } = await adminClient.auth.admin.listUsers({ page: 1, perPage: 1000 });
+  if (error) {
+    console.error('[paddle webhook] listUsers error:', error.message);
+    return null;
+  }
+
+  const match = data?.users.find(
+    (u) => u.email?.toLowerCase() === customerEmail.toLowerCase()
+  );
+  return match?.id ?? null;
 }
 
-async function setSubscriptionTier(
+// ─── Update profiles (resilient: subscription_status always; plan/is_demo optional) ──
+
+async function updateProfile(
   adminClient: ReturnType<typeof buildAdminClient>,
   userId: string,
   tier: 'starter' | 'pro' | 'unlimited'
 ): Promise<void> {
   const isPaid = tier !== 'starter';
-  const { error } = await adminClient
+
+  // Always update subscription_status (column definitely exists)
+  const { error: e1 } = await adminClient
     .from('profiles')
-    .update({
-      subscription_status: tier,
-      plan: isPaid ? tier : 'free',
-      is_demo: !isPaid,
-    })
+    .update({ subscription_status: tier })
     .eq('id', userId);
-  if (error) throw error;
+
+  if (e1) throw new Error(`subscription_status update failed: ${e1.message}`);
+
+  // Try to update plan + is_demo (only exist after migration 004)
+  const { error: e2 } = await adminClient
+    .from('profiles')
+    .update({ plan: isPaid ? tier : 'free', is_demo: !isPaid })
+    .eq('id', userId);
+
+  if (e2) {
+    // Non-fatal: migration may not have been run yet
+    console.warn(`[paddle webhook] plan/is_demo update skipped (run migration 004): ${e2.message}`);
+  }
 }
 
-// ─── Route handler ────────────────────────────────────────────────────────────
+// ─── Helper: extract price ID from either items or details.line_items ─────────
+
+function extractPriceId(data: PaddleWebhookData): string | null {
+  return (
+    data.items?.[0]?.price?.id ??
+    data.details?.line_items?.[0]?.price?.id ??
+    null
+  );
+}
+
+// ─── POST — main webhook handler ─────────────────────────────────────────────
 
 export async function POST(request: Request) {
   const webhookSecret = process.env.PADDLE_WEBHOOK_SECRET;
   if (!webhookSecret) {
-    console.error('[paddle webhook] PADDLE_WEBHOOK_SECRET is not set.');
+    console.error('[paddle webhook] PADDLE_WEBHOOK_SECRET is not set');
     return NextResponse.json({ error: 'Server configuration error.' }, { status: 500 });
   }
 
   const rawBody = await request.text();
   const signatureHeader = request.headers.get('Paddle-Signature') ?? '';
 
+  // Log for debugging (remove in production if noisy)
+  console.log('[paddle webhook] sig header:', signatureHeader.slice(0, 60));
+
   if (!verifySignature(rawBody, signatureHeader, webhookSecret)) {
-    console.warn('[paddle webhook] Invalid signature — rejected.');
+    console.warn('[paddle webhook] Signature mismatch — check PADDLE_WEBHOOK_SECRET in Vercel env');
     return NextResponse.json({ error: 'Invalid signature.' }, { status: 401 });
   }
 
@@ -121,57 +166,53 @@ export async function POST(request: Request) {
   }
 
   const { event_type, data } = event;
-  console.log(`[paddle webhook] event: ${event_type}`);
+  const priceId = extractPriceId(data);
+  const tier = priceId ? tierFromPriceId(priceId) : null;
+  const customerEmail = data.customer?.email;
+
+  console.log(`[paddle webhook] event=${event_type} priceId=${priceId} tier=${tier} email=${customerEmail ?? 'none'} customData=${JSON.stringify(data.custom_data)}`);
 
   try {
     const adminClient = buildAdminClient();
 
-    // ── subscription.created / subscription.updated ──────────────────────────
     if (event_type === 'subscription.created' || event_type === 'subscription.updated') {
-      const priceId = data.items[0]?.price?.id;
-      const tier = priceId ? tierFromPriceId(priceId) : null;
-
       if (!tier) {
-        console.warn(`[paddle webhook] Unknown price ID: ${priceId}`);
-        return NextResponse.json({ ok: true, skipped: 'unknown price' });
+        console.warn(`[paddle webhook] Unknown priceId: ${priceId} — add it to PADDLE_PRICE_IDS in lib/paddle.ts`);
+        return NextResponse.json({ ok: true, skipped: `unknown_price:${priceId}` });
       }
 
-      const userId = await resolveUserId(adminClient, data.custom_data, data.customer?.email);
+      const userId = await resolveUserId(adminClient, data.custom_data, customerEmail);
       if (!userId) {
-        console.warn('[paddle webhook] Could not resolve user.');
+        console.warn('[paddle webhook] User not found. customData:', data.custom_data, 'email:', customerEmail);
         return NextResponse.json({ error: 'User not found.' }, { status: 404 });
       }
 
-      await setSubscriptionTier(adminClient, userId, tier);
-      console.log(`[paddle webhook] ✓ userId=${userId} → ${tier} (${event_type})`);
+      await updateProfile(adminClient, userId, tier);
+      console.log(`[paddle webhook] ✓ ${userId} → ${tier}`);
     }
 
-    // ── subscription.canceled ─────────────────────────────────────────────────
     else if (event_type === 'subscription.canceled') {
-      const userId = await resolveUserId(adminClient, data.custom_data, data.customer?.email);
+      const userId = await resolveUserId(adminClient, data.custom_data, customerEmail);
       if (userId) {
-        await setSubscriptionTier(adminClient, userId, 'starter');
-        console.log(`[paddle webhook] ✓ userId=${userId} → starter (canceled)`);
+        await updateProfile(adminClient, userId, 'starter');
+        console.log(`[paddle webhook] ✓ ${userId} → starter (canceled)`);
       }
     }
 
-    // ── transaction.completed (one-time purchases) ────────────────────────────
     else if (event_type === 'transaction.completed') {
-      const priceId = data.items[0]?.price?.id;
-      const tier = priceId ? tierFromPriceId(priceId) : null;
-
       if (tier) {
-        const userId = await resolveUserId(adminClient, data.custom_data, data.customer?.email);
+        const userId = await resolveUserId(adminClient, data.custom_data, customerEmail);
         if (userId) {
-          await setSubscriptionTier(adminClient, userId, tier);
-          console.log(`[paddle webhook] ✓ userId=${userId} → ${tier} (transaction)`);
+          await updateProfile(adminClient, userId, tier);
+          console.log(`[paddle webhook] ✓ ${userId} → ${tier} (transaction)`);
         }
       }
     }
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, event_type });
   } catch (err) {
-    console.error('[paddle webhook] Error:', err);
-    return NextResponse.json({ error: 'Internal error.' }, { status: 500 });
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error('[paddle webhook] Error:', msg);
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }
