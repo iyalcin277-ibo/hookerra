@@ -11,14 +11,14 @@ interface PaddlePriceItem {
 }
 
 interface PaddleWebhookData {
-  id: string;
+  id: string;               // subscription_id for subscription events
   status: string;
   customer_id?: string;
-  // customer object is present in transaction events but not always in subscriptions
   customer?: { id: string; email: string };
   custom_data?: Record<string, unknown>;
   items?: PaddlePriceItem[];
   details?: { line_items?: PaddlePriceItem[] };
+  transaction_id?: string;  // for transaction events
 }
 
 interface PaddleEvent {
@@ -26,16 +26,16 @@ interface PaddleEvent {
   data: PaddleWebhookData;
 }
 
-// ─── GET — health check (lets you verify the endpoint is reachable) ───────────
+// ─── GET — health check ───────────────────────────────────────────────────────
 
 export function GET() {
   return NextResponse.json({
     ok: true,
     endpoint: '/api/paddle',
     secret_set: !!process.env.PADDLE_WEBHOOK_SECRET,
-    supabase_set: !!(
-      process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY
-    ),
+    supabase_set: !!(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY),
+    env: process.env.NEXT_PUBLIC_PADDLE_ENV ?? 'sandbox',
+    skip_sig: process.env.PADDLE_SKIP_SIG === 'true',
   });
 }
 
@@ -99,32 +99,39 @@ async function resolveUserId(
   return match?.id ?? null;
 }
 
-// ─── Update profiles (resilient: subscription_status always; plan/is_demo optional) ──
+// ─── Update profiles ──────────────────────────────────────────────────────────
 
 async function updateProfile(
   adminClient: ReturnType<typeof buildAdminClient>,
   userId: string,
-  tier: 'starter' | 'pro' | 'unlimited'
+  tier: 'starter' | 'pro' | 'unlimited',
+  subscriptionId?: string,
+  customerId?: string
 ): Promise<void> {
   const isPaid = tier !== 'starter';
 
-  // Always update subscription_status (column definitely exists)
+  // Core update — subscription_status always exists
+  const coreUpdate: Record<string, unknown> = { subscription_status: tier };
+
+  // Optional columns (added by migrations 004 and 005)
+  if (subscriptionId) coreUpdate.paddle_subscription_id = subscriptionId;
+  if (customerId) coreUpdate.paddle_customer_id = customerId;
+
   const { error: e1 } = await adminClient
     .from('profiles')
-    .update({ subscription_status: tier })
+    .update(coreUpdate)
     .eq('id', userId);
 
-  if (e1) throw new Error(`subscription_status update failed: ${e1.message}`);
+  if (e1) throw new Error(`Profile update failed: ${e1.message}`);
 
-  // Try to update plan + is_demo (only exist after migration 004)
+  // plan + is_demo (migration 004) — non-fatal if columns don't exist yet
   const { error: e2 } = await adminClient
     .from('profiles')
     .update({ plan: isPaid ? tier : 'free', is_demo: !isPaid })
     .eq('id', userId);
 
   if (e2) {
-    // Non-fatal: migration may not have been run yet
-    console.warn(`[paddle webhook] plan/is_demo update skipped (run migration 004): ${e2.message}`);
+    console.warn(`[paddle webhook] plan/is_demo skipped (run migration 004): ${e2.message}`);
   }
 }
 
@@ -150,11 +157,16 @@ export async function POST(request: Request) {
   const rawBody = await request.text();
   const signatureHeader = request.headers.get('Paddle-Signature') ?? '';
 
-  // Log for debugging (remove in production if noisy)
-  console.log('[paddle webhook] sig header:', signatureHeader.slice(0, 60));
+  const skipSig = process.env.PADDLE_SKIP_SIG === 'true';
+  console.log('[paddle webhook] sig_header:', signatureHeader.slice(0, 80), '| skip_sig:', skipSig);
 
-  if (!verifySignature(rawBody, signatureHeader, webhookSecret)) {
-    console.warn('[paddle webhook] Signature mismatch — check PADDLE_WEBHOOK_SECRET in Vercel env');
+  if (!skipSig && !verifySignature(rawBody, signatureHeader, webhookSecret)) {
+    console.warn(
+      '[paddle webhook] Signature mismatch.\n' +
+      '  → Make sure PADDLE_WEBHOOK_SECRET in Vercel matches the "Secret key" in Paddle\n' +
+      '     Dashboard → Developer Tools → Notifications → [your endpoint] → Secret key.\n' +
+      '  → Temporarily set PADDLE_SKIP_SIG=true in Vercel env to bypass for testing.'
+    );
     return NextResponse.json({ error: 'Invalid signature.' }, { status: 401 });
   }
 
@@ -183,12 +195,12 @@ export async function POST(request: Request) {
 
       const userId = await resolveUserId(adminClient, data.custom_data, customerEmail);
       if (!userId) {
-        console.warn('[paddle webhook] User not found. customData:', data.custom_data, 'email:', customerEmail);
+        console.warn('[paddle webhook] User not found. customData:', JSON.stringify(data.custom_data), 'email:', customerEmail);
         return NextResponse.json({ error: 'User not found.' }, { status: 404 });
       }
 
-      await updateProfile(adminClient, userId, tier);
-      console.log(`[paddle webhook] ✓ ${userId} → ${tier}`);
+      await updateProfile(adminClient, userId, tier, data.id, data.customer_id);
+      console.log(`[paddle webhook] ✓ ${userId} → ${tier} | sub=${data.id}`);
     }
 
     else if (event_type === 'subscription.canceled') {
@@ -203,7 +215,7 @@ export async function POST(request: Request) {
       if (tier) {
         const userId = await resolveUserId(adminClient, data.custom_data, customerEmail);
         if (userId) {
-          await updateProfile(adminClient, userId, tier);
+          await updateProfile(adminClient, userId, tier, undefined, data.customer_id);
           console.log(`[paddle webhook] ✓ ${userId} → ${tier} (transaction)`);
         }
       }

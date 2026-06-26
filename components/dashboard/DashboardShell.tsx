@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import {
+  AlertTriangle,
   Check,
   Copy,
   FileText,
@@ -11,11 +12,13 @@ import {
   Loader2,
   Lock,
   LogOut,
+  Menu,
   MessageSquare,
   Sparkles,
   History as HistoryIcon,
   Target,
   User as UserIcon,
+  X,
   Zap,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -87,7 +90,7 @@ export function DashboardShell() {
   const [toast, setToast] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [history, setHistory] = useState<GenerationRow[]>([]);
-  const [planSaving, setPlanSaving] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const limit = monthlyGenerationLimit(tier);
   const usageLabel =
@@ -191,23 +194,6 @@ export function DashboardShell() {
     router.refresh();
   }
 
-  async function setSubscription(next: TierId) {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    setPlanSaving(true);
-    try {
-      const status = next === 'unlimited' ? 'unlimited' : next === 'pro' ? 'pro' : 'starter';
-      const { error: upErr } = await supabase
-        .from('profiles').update({ subscription_status: status }).eq('id', user.id);
-      if (upErr) { showToast(upErr.message.slice(0, 120)); return; }
-      setTier(next);
-      showToast('Plan updated.');
-      await loadSubscription();
-    } finally {
-      setPlanSaving(false);
-    }
-  }
-
   if (!ready) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-black">
@@ -224,22 +210,44 @@ export function DashboardShell() {
 
   return (
     <div className="flex min-h-screen bg-black text-white">
+
+      {/* ── MOBILE OVERLAY ─────────────────────────────────────── */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* ── SIDEBAR ─────────────────────────────────────────────── */}
-      <aside className="flex w-full shrink-0 flex-col border-b border-[#121212] bg-[#121212] md:w-64 md:border-b-0 md:border-r">
-        <div className="border-b border-black p-4">
-          <Link href="/dashboard" className="flex justify-center py-2">
+      <aside
+        className={cn(
+          'fixed inset-y-0 left-0 z-50 flex w-72 shrink-0 flex-col border-r border-[#121212] bg-[#121212] transition-transform duration-200 md:static md:w-64 md:translate-x-0',
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        )}
+      >
+        {/* Sidebar header */}
+        <div className="flex items-center justify-between border-b border-black p-4">
+          <Link href="/dashboard" className="flex items-center py-1">
             <Logo className="h-8 w-auto text-white" />
           </Link>
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(false)}
+            className="rounded-lg p-1.5 text-[#A0A0A0] hover:text-white md:hidden"
+          >
+            <X className="h-5 w-5" strokeWidth={2} />
+          </button>
         </div>
 
-        <nav className="flex flex-row gap-1 overflow-x-auto p-3 md:flex-col md:overflow-visible">
+        <nav className="flex flex-col gap-1 p-3">
           {sidebarNav.map((item) => (
             <button
               key={item.key}
               type="button"
-              onClick={() => setNav(item.key)}
+              onClick={() => { setNav(item.key); setSidebarOpen(false); }}
               className={cn(
-                'flex min-w-[130px] shrink-0 items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-bold uppercase tracking-widest transition md:min-w-0',
+                'flex items-center gap-3 rounded-xl px-3 py-2.5 text-left text-xs font-bold uppercase tracking-widest transition',
                 nav === item.key
                   ? 'bg-black text-[#FF0000]'
                   : 'text-[#A0A0A0] hover:bg-black/60 hover:text-white'
@@ -251,24 +259,24 @@ export function DashboardShell() {
           ))}
         </nav>
 
-        <div className="border-t border-black p-4 md:px-3 md:pt-4 md:pb-2">
+        <div className="border-t border-black p-4">
           <div className="rounded-2xl border border-[#121212] bg-black/60 p-4">
             <p className="text-[10px] font-mono font-bold uppercase tracking-[0.2em] text-[#A0A0A0]">Plan</p>
             <p className="mt-1 font-display text-lg font-black text-[#FF0000]">{planDisplayName(tier)}</p>
             <p className="mt-2 text-xs font-semibold text-white">{usageLabel}</p>
             {tier === 'starter' && (
               <p className="mt-1 text-[10px] text-[#A0A0A0]">
-                10 gen/mo · {settings.hookCount} hooks · {settings.hashtagCount} tags · Script & Caption
+                10 gen/mo · {settings.hookCount} hooks · {settings.hashtagCount} tags
               </p>
             )}
             {tier === 'pro' && (
               <p className="mt-1 text-[10px] text-[#A0A0A0]">
-                50 gen/mo · {settings.hookCount} hooks · {settings.hashtagCount} tags · Script & Caption
+                50 gen/mo · {settings.hookCount} hooks · {settings.hashtagCount} tags
               </p>
             )}
             {tier === 'unlimited' && (
               <p className="mt-1 text-[10px] text-[#A0A0A0]">
-                Unlimited · {settings.hookCount} hooks · {settings.hashtagCount} tags · Script & Caption
+                Unlimited · {settings.hookCount} hooks · {settings.hashtagCount} tags
               </p>
             )}
           </div>
@@ -279,7 +287,7 @@ export function DashboardShell() {
             >
               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#FF0000]">Upgrade plan</span>
               <span className="text-xs font-semibold leading-snug text-white">
-                More hooks, hashtags, script & caption, and all tones unlocked.
+                More hooks, hashtags &amp; all tones unlocked.
               </span>
               <span className="text-[11px] font-bold text-[#FF0000]">View pricing →</span>
             </Link>
@@ -300,36 +308,29 @@ export function DashboardShell() {
 
       {/* ── MAIN ────────────────────────────────────────────────── */}
       <div className="flex min-h-0 flex-1 flex-col">
-        {/* Mobile header */}
-        <header className="flex items-center justify-between gap-3 border-b border-[#121212] px-4 py-3 md:hidden">
-          <div className="min-w-0">
-            <p className="truncate text-[10px] font-mono font-bold uppercase tracking-[0.15em] text-[#A0A0A0]">
+        {/* Mobile top bar with hamburger */}
+        <header className="flex items-center justify-between gap-3 border-b border-[#121212] bg-black px-4 py-3 md:hidden">
+          <button
+            type="button"
+            aria-label="Open menu"
+            onClick={() => setSidebarOpen(true)}
+            className="rounded-lg p-2 text-white transition hover:bg-[#121212]"
+          >
+            <Menu className="h-5 w-5" strokeWidth={2} />
+          </button>
+          <div className="min-w-0 flex-1 text-center">
+            <p className="truncate text-xs font-bold uppercase tracking-widest text-[#FF0000]">
               {planDisplayName(tier)}
             </p>
-            <p className="truncate text-xs font-bold text-white">{usageLabel}</p>
+            <p className="truncate text-[10px] text-[#A0A0A0]">{usageLabel}</p>
           </div>
-          <div className="flex shrink-0 gap-2">
-            {(['profile', 'archive'] as NavKey[]).map((k) => (
-            <button
-                key={k}
-              type="button"
-                onClick={() => setNav(k)}
-              className={cn(
-                  'rounded-lg px-2 py-2 text-[10px] font-bold uppercase tracking-wider capitalize',
-                  nav === k ? 'bg-[#FF0000] text-white' : 'text-[#A0A0A0]'
-              )}
-            >
-                {k}
-            </button>
-            ))}
-            <button
-              type="button"
-              onClick={logout}
-              className="rounded-lg border border-[#121212] px-2 py-2 text-[10px] font-bold uppercase tracking-wider text-[#A0A0A0]"
-            >
-              Out
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={logout}
+            className="rounded-lg p-2 text-[#A0A0A0] transition hover:text-white"
+          >
+            <LogOut className="h-4 w-4" strokeWidth={1.5} />
+          </button>
         </header>
 
         <main className="flex min-h-0 flex-1 flex-col lg:flex-row">
@@ -679,28 +680,28 @@ export function DashboardShell() {
                 </div>
               )}
 
-              <div className="rounded-2xl border border-[#121212] bg-black/40 p-6">
-                <p className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#A0A0A0]">Plan switcher (demo)</p>
-                <p className="mt-2 text-sm text-[#A0A0A0]">Switch plans to test features before payment is connected.</p>
-                <div className="mt-6 flex flex-wrap gap-3">
-                  {(['starter', 'pro', 'unlimited'] as TierId[]).map((tid) => (
-                    <button
-                      key={tid}
-                      type="button"
-                      disabled={planSaving || tier === tid}
-                      onClick={() => setSubscription(tid)}
-                      className={cn(
-                        'rounded-xl border px-4 py-3 text-xs font-bold uppercase tracking-widest transition',
-                        tier === tid
-                          ? 'border-[#FF0000] bg-black text-[#FF0000]'
-                          : 'border-[#121212] bg-black text-white hover:border-[#FF0000]'
-                      )}
-                    >
-                      {planDisplayName(tid)}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              {tier !== 'starter' && (
+                <CancelSubscriptionCard
+                  onCancel={async () => {
+                    const confirmed = window.confirm(
+                      'Are you sure you want to cancel your subscription? You will keep access until the end of the billing period.'
+                    );
+                    if (!confirmed) return;
+                    try {
+                      const res = await fetch('/api/paddle/cancel', { method: 'POST' });
+                      const json = await res.json() as { ok?: boolean; error?: string };
+                      if (!res.ok) {
+                        showToast(json.error ?? 'Could not cancel. Please contact support.');
+                      } else {
+                        showToast('Subscription cancelled. Access continues until end of period.');
+                        await loadSubscription();
+                      }
+                    } catch {
+                      showToast('Network error. Try again.');
+                    }
+                  }}
+                />
+              )}
 
               <Link href="/pricing" className="inline-flex rounded-xl border border-[#FF0000]/50 px-5 py-3 text-sm font-bold text-[#FF0000] hover:bg-[#FF0000]/10">
                 Pricing page →
@@ -902,5 +903,39 @@ function AssetBadge({ label, icon }: { label: string; icon: ReactNode }) {
       {icon}
       {label}
     </span>
+  );
+}
+
+function CancelSubscriptionCard({ onCancel }: { onCancel: () => Promise<void> }) {
+  const [cancelling, setCancelling] = useState(false);
+
+  return (
+    <div className="rounded-2xl border border-[#B91C1C]/40 bg-[#B91C1C]/5 p-6">
+      <div className="flex items-start gap-3">
+        <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-[#B91C1C]" strokeWidth={1.5} />
+        <div>
+          <p className="text-[10px] font-mono font-bold uppercase tracking-widest text-[#B91C1C]">
+            Cancel Subscription
+          </p>
+          <p className="mt-2 text-sm text-[#A0A0A0]">
+            You will keep full access until the end of your current billing period. After that,
+            your account reverts to the free plan.
+          </p>
+          <button
+            type="button"
+            disabled={cancelling}
+            onClick={async () => {
+              setCancelling(true);
+              await onCancel();
+              setCancelling(false);
+            }}
+            className="mt-4 inline-flex items-center gap-2 rounded-xl border border-[#B91C1C]/50 bg-black px-5 py-2.5 text-xs font-bold uppercase tracking-widest text-[#B91C1C] transition hover:border-[#B91C1C] hover:bg-[#B91C1C]/10 disabled:opacity-50"
+          >
+            {cancelling ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+            {cancelling ? 'Cancelling…' : 'Cancel Subscription'}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
