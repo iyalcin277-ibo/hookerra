@@ -100,6 +100,8 @@ async function resolveUserId(
 }
 
 // ─── Update profiles ──────────────────────────────────────────────────────────
+// Uses upsert (onConflict: 'id') so the row is created if missing.
+// id is always explicitly included to prevent null-constraint errors.
 
 async function updateProfile(
   adminClient: ReturnType<typeof buildAdminClient>,
@@ -108,31 +110,43 @@ async function updateProfile(
   subscriptionId?: string,
   customerId?: string
 ): Promise<void> {
+  if (!userId) throw new Error('updateProfile called with empty userId');
+
   const isPaid = tier !== 'starter';
 
-  // Core update — subscription_status always exists
-  const coreUpdate: Record<string, unknown> = { subscription_status: tier };
-
-  // Optional columns (added by migrations 004 and 005)
-  if (subscriptionId) coreUpdate.paddle_subscription_id = subscriptionId;
-  if (customerId) coreUpdate.paddle_customer_id = customerId;
+  // ── Step 1: core columns (always exist) ───────────────────────────────────
+  const coreData: Record<string, unknown> = {
+    id: userId,                      // must be explicit for upsert
+    subscription_status: tier,
+  };
 
   const { error: e1 } = await adminClient
     .from('profiles')
-    .update(coreUpdate)
-    .eq('id', userId);
+    .upsert(coreData, { onConflict: 'id' });
 
   if (e1) throw new Error(`Profile update failed: ${e1.message}`);
 
-  // plan + is_demo (migration 004) — non-fatal if columns don't exist yet
-  const { error: e2 } = await adminClient
+  // ── Step 2: paddle IDs (migration 005) — non-fatal ────────────────────────
+  if (subscriptionId || customerId) {
+    const paddleData: Record<string, unknown> = {};
+    if (subscriptionId) paddleData.paddle_subscription_id = subscriptionId;
+    if (customerId)     paddleData.paddle_customer_id     = customerId;
+
+    const { error: e2 } = await adminClient
+      .from('profiles')
+      .update(paddleData)
+      .eq('id', userId);
+
+    if (e2) console.warn(`[paddle webhook] paddle IDs skipped (run migration 005): ${e2.message}`);
+  }
+
+  // ── Step 3: plan + is_demo (migration 004) — non-fatal ────────────────────
+  const { error: e3 } = await adminClient
     .from('profiles')
     .update({ plan: isPaid ? tier : 'free', is_demo: !isPaid })
     .eq('id', userId);
 
-  if (e2) {
-    console.warn(`[paddle webhook] plan/is_demo skipped (run migration 004): ${e2.message}`);
-  }
+  if (e3) console.warn(`[paddle webhook] plan/is_demo skipped (run migration 004): ${e3.message}`);
 }
 
 // ─── Helper: extract price ID from either items or details.line_items ─────────
