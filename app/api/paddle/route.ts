@@ -124,7 +124,12 @@ async function updateProfile(
     .from('profiles')
     .upsert(coreData, { onConflict: 'id' });
 
-  if (e1) throw new Error(`Profile update failed: ${e1.message}`);
+  if (e1) {
+    const hint = e1.message.includes('check constraint')
+      ? ' → Run migration 003 in Supabase SQL Editor to allow pro/unlimited values.'
+      : '';
+    throw new Error(`Profile update failed: ${e1.message}${hint}`);
+  }
 
   // ── Step 2: paddle IDs (migration 005) — non-fatal ────────────────────────
   if (subscriptionId || customerId) {
